@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Contact – Devi Murlika Gaur</title>
 <meta name="description" content="Get in touch with Devi Murlika Gaur for satsang invitations, collaborations and devotional programmes." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -84,6 +85,9 @@
       </div>
 
       <form class="contact-form" id="contactForm">
+        <!-- Honeypot: hidden from humans, bots fill it -> server silently drops -->
+        <input type="text" name="company" id="company" tabindex="-1" autocomplete="off"
+          style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" />
         <label for="name">Name</label>
         <input id="name" name="name" type="text" placeholder="Your name" required />
         <label for="email">Email</label>

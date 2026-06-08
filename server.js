@@ -8,6 +8,8 @@ import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode';
+import multer from 'multer';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import db from './db.js';
@@ -49,6 +51,16 @@ app.use(helmet({
 app.use(express.json({ limit: '16kb' }));            // M3: cap body size
 app.use(express.urlencoded({ extended: true, limit: '16kb' }));
 
+// ---- Production access logging (stdout → captured by pm2 / Azure) ----
+if (PROD) {
+  app.use((req, res, next) => {
+    res.on('finish', () => {
+      console.log(`${new Date().toISOString()} ${req.ip} ${req.method} ${req.path} ${res.statusCode}`);
+    });
+    next();
+  });
+}
+
 // ---- Optional CORS, pinned to one origin (H1). Same-origin needs none. ----
 const PUBLIC_ORIGIN = process.env.PUBLIC_ORIGIN;
 if (PUBLIC_ORIGIN) {
@@ -69,8 +81,12 @@ app.use(session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: 'strict', secure: PROD, maxAge: 1000 * 60 * 60 * 8 }
+  rolling: true,   // idle timeout: each request resets the clock; inactivity expires the session
+  cookie: { httpOnly: true, sameSite: 'strict', secure: PROD, maxAge: 1000 * 60 * 30 } // 30 min idle
 }));
+
+// Health check (uptime monitoring)
+app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // ---- Rate limiting (H3) ----
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'too many attempts, try later' } });
@@ -167,34 +183,51 @@ app.post('/api/donate/verify', (req, res) => {
 
 // Visitor submits contact details
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-app.post('/api/contact', async (req, res) => {
-  let { name, email, phone, subject, message } = req.body;
-  name = String(name || '').trim(); email = String(email || '').trim();
-  message = String(message || '').trim();
-  phone = String(phone || '').trim(); subject = String(subject || '').trim();
-  if (!name || !email || !message) return res.status(400).json({ error: 'name, email, message required' });
-  if (!EMAIL_RE.test(email) || email.length > 160) return res.status(400).json({ error: 'invalid email' });
-  if (name.length > 120 || message.length > 4000 || phone.length > 30 || subject.length > 200)
-    return res.status(400).json({ error: 'input too long' });
-  db.prepare('INSERT INTO messages (name,email,phone,subject,message) VALUES (?,?,?,?,?)')
-    .run(name, email, phone, subject, message);
+app.post('/api/contact', async (req, res, next) => {
+  try {
+    // Honeypot: a hidden field real users never fill. Bots do → silently drop.
+    if (req.body.company) return res.json({ ok: true });
+    let { name, email, phone, subject, message } = req.body;
+    name = String(name || '').trim(); email = String(email || '').trim();
+    message = String(message || '').trim();
+    phone = String(phone || '').trim(); subject = String(subject || '').trim();
+    if (!name || !email || !message) return res.status(400).json({ error: 'name, email, message required' });
+    if (!EMAIL_RE.test(email) || email.length > 160) return res.status(400).json({ error: 'invalid email' });
+    if (name.length > 120 || message.length > 4000 || phone.length > 30 || subject.length > 200)
+      return res.status(400).json({ error: 'input too long' });
+    db.prepare('INSERT INTO messages (name,email,phone,subject,message) VALUES (?,?,?,?,?)')
+      .run(name, email, phone, subject, message);
 
-  if (mailer && process.env.MAIL_TO) {
-    try {
-      await mailer.sendMail({
-        from: process.env.SMTP_USER,
-        to: process.env.MAIL_TO,
-        subject: `New message: ${subject || 'Website contact'}`,
-        text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone || '-'}\n\n${message}`
-      });
-    } catch (e) { console.error('[mail] send failed:', e.message); }
-  }
-  res.json({ ok: true });
+    if (mailer && process.env.MAIL_TO) {
+      try {
+        await mailer.sendMail({
+          from: process.env.SMTP_USER,
+          to: process.env.MAIL_TO,
+          subject: `New message: ${subject || 'Website contact'}`,
+          text: `Name: ${name}\nEmail: ${email}\nPhone: ${phone || '-'}\n\n${message}`
+        });
+      } catch (e) { console.error('[mail] send failed:', e.message); }
+    }
+    res.json({ ok: true });
+  } catch (e) { next(e); }
 });
 
 // ================= ADMIN AUTH =================
 const MAX_FAILS = 3;             // failed tries before lockout
 const LOCK_MINUTES = 15;         // lockout duration
+
+// Strong-password policy: >=10 chars, upper, lower, digit, symbol; not a common one.
+const COMMON_PW = new Set(['password', 'changeme123', 'admin123', '12345678', 'qwerty123', 'password123']);
+function passwordProblem(pw) {
+  pw = String(pw || '');
+  if (pw.length < 10) return 'at least 10 characters';
+  if (!/[a-z]/.test(pw)) return 'a lowercase letter';
+  if (!/[A-Z]/.test(pw)) return 'an uppercase letter';
+  if (!/[0-9]/.test(pw)) return 'a number';
+  if (!/[^A-Za-z0-9]/.test(pw)) return 'a symbol';
+  if (COMMON_PW.has(pw.toLowerCase())) return 'a less common password';
+  return null;
+}
 const audit = (username, ip, success, reason) =>
   db.prepare('INSERT INTO login_audit (username,ip,success,reason) VALUES (?,?,?,?)')
     .run(String(username || '').slice(0, 80), String(ip || '').slice(0, 60), success ? 1 : 0, reason || '');
@@ -252,11 +285,13 @@ app.post('/api/login', loginLimiter, (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => { req.session.destroy(() => res.json({ ok: true })); });
+const ENFORCE_2FA = process.env.ENFORCE_2FA !== 'false';   // mandatory by default
 app.get('/api/me', (req, res) => {
   const a = req.session?.admin;
   if (!a) return res.json({ admin: null });
   const row = db.prepare('SELECT totp_enabled FROM admin WHERE id=?').get(a.id);
-  res.json({ admin: a, totp_enabled: !!(row && row.totp_enabled) });
+  const enabled = !!(row && row.totp_enabled);
+  res.json({ admin: a, totp_enabled: enabled, must_setup_2fa: ENFORCE_2FA && !enabled });
 });
 
 // ================= ADMIN (protected) =================
@@ -281,17 +316,21 @@ app.put('/api/admin/settings', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// Length cap helper (defense-in-depth on admin inputs)
+const cap = (v, n) => String(v ?? '').slice(0, n);
+
 // Events CRUD
 app.post('/api/admin/events', requireAuth, (req, res) => {
   const { title, description, day, month, link, sort_order } = req.body;
+  if (!cap(title, 200).trim()) return res.status(400).json({ error: 'title required' });
   const r = db.prepare('INSERT INTO events (title,description,day,month,link,sort_order) VALUES (?,?,?,?,?,?)')
-    .run(title, description || '', day || '', month || '', link || '', sort_order || 0);
+    .run(cap(title, 200), cap(description, 1000), cap(day, 8), cap(month, 12), cap(link, 500), Number(sort_order) || 0);
   res.json({ ok: true, id: r.lastInsertRowid });
 });
 app.put('/api/admin/events/:id', requireAuth, (req, res) => {
   const { title, description, day, month, link, sort_order } = req.body;
   db.prepare('UPDATE events SET title=?,description=?,day=?,month=?,link=?,sort_order=? WHERE id=?')
-    .run(title, description || '', day || '', month || '', link || '', sort_order || 0, req.params.id);
+    .run(cap(title, 200), cap(description, 1000), cap(day, 8), cap(month, 12), cap(link, 500), Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
 });
 app.delete('/api/admin/events/:id', requireAuth, (req, res) => {
@@ -302,14 +341,15 @@ app.delete('/api/admin/events/:id', requireAuth, (req, res) => {
 // Posts CRUD
 app.post('/api/admin/posts', requireAuth, (req, res) => {
   const { title, body, image, date_label } = req.body;
+  if (!cap(title, 200).trim()) return res.status(400).json({ error: 'title required' });
   const r = db.prepare('INSERT INTO posts (title,body,image,date_label) VALUES (?,?,?,?)')
-    .run(title, body || '', image || '', date_label || '');
+    .run(cap(title, 200), cap(body, 10000), cap(image, 500), cap(date_label, 40));
   res.json({ ok: true, id: r.lastInsertRowid });
 });
 app.put('/api/admin/posts/:id', requireAuth, (req, res) => {
   const { title, body, image, date_label } = req.body;
   db.prepare('UPDATE posts SET title=?,body=?,image=?,date_label=? WHERE id=?')
-    .run(title, body || '', image || '', date_label || '', req.params.id);
+    .run(cap(title, 200), cap(body, 10000), cap(image, 500), cap(date_label, 40), req.params.id);
   res.json({ ok: true });
 });
 app.delete('/api/admin/posts/:id', requireAuth, (req, res) => {
@@ -320,15 +360,15 @@ app.delete('/api/admin/posts/:id', requireAuth, (req, res) => {
 // Gallery CRUD
 app.post('/api/admin/gallery', requireAuth, (req, res) => {
   const { image, caption, sort_order } = req.body;
-  if (!image) return res.status(400).json({ error: 'image required' });
+  if (!cap(image, 500).trim()) return res.status(400).json({ error: 'image required' });
   const r = db.prepare('INSERT INTO gallery (image,caption,sort_order) VALUES (?,?,?)')
-    .run(image, caption || '', sort_order || 0);
+    .run(cap(image, 500), cap(caption, 300), Number(sort_order) || 0);
   res.json({ ok: true, id: r.lastInsertRowid });
 });
 app.put('/api/admin/gallery/:id', requireAuth, (req, res) => {
   const { image, caption, sort_order } = req.body;
   db.prepare('UPDATE gallery SET image=?,caption=?,sort_order=? WHERE id=?')
-    .run(image, caption || '', sort_order || 0, req.params.id);
+    .run(cap(image, 500), cap(caption, 300), Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
 });
 app.delete('/api/admin/gallery/:id', requireAuth, (req, res) => {
@@ -347,7 +387,8 @@ app.put('/api/admin/password', requireAuth, (req, res) => {
   const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
   if (!bcrypt.compareSync(current || '', row.password_hash))
     return res.status(400).json({ error: 'current password wrong' });
-  if (!next || next.length < 8) return res.status(400).json({ error: 'new password must be at least 8 characters' });
+  const problem = passwordProblem(next);
+  if (problem) return res.status(400).json({ error: 'password needs ' + problem });
   db.prepare('UPDATE admin SET password_hash=? WHERE id=?').run(bcrypt.hashSync(next, 12), row.id);
   res.json({ ok: true });
 });
@@ -372,13 +413,48 @@ app.post('/api/admin/2fa/enable', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// Disable 2FA (requires current password to confirm).
+// Disable 2FA (requires current password). Blocked when 2FA is mandatory.
 app.put('/api/admin/2fa/disable', requireAuth, (req, res) => {
+  if (ENFORCE_2FA) return res.status(403).json({ error: '2FA is mandatory and cannot be disabled' });
   const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
   if (!bcrypt.compareSync(req.body.password || '', row.password_hash))
     return res.status(400).json({ error: 'password wrong' });
   db.prepare('UPDATE admin SET totp_enabled=0, totp_secret=NULL WHERE id=?').run(row.id);
   res.json({ ok: true });
+});
+
+// ---- DB backup: stream a consistent copy of the SQLite database (admin only) ----
+app.get('/api/admin/backup', requireAuth, (req, res) => {
+  try {
+    db.pragma('wal_checkpoint(TRUNCATE)');           // flush WAL into the main file
+    const src = path.join(__dirname, 'data.db');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    res.setHeader('Content-Disposition', `attachment; filename="backup-${stamp}.db"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    fs.createReadStream(src).pipe(res);
+  } catch (e) { console.error('[backup]', e.message); res.status(500).json({ error: 'backup failed' }); }
+});
+
+// ---- Image upload (admin only): validated type + size, stored in public/uploads ----
+const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => {
+      const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' }[file.mimetype] || '';
+      cb(null, crypto.randomBytes(12).toString('hex') + ext);   // random name, no user-controlled path
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },               // 5 MB
+  fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
+});
+app.post('/api/admin/upload', requireAuth, (req, res) => {
+  upload.single('image')(req, res, err => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'image must be jpg/png/webp/gif under 5MB' });
+    res.json({ ok: true, url: '/uploads/' + req.file.filename });
+  });
 });
 
 // Recent login attempts (audit trail)
@@ -394,4 +470,21 @@ app.get('/admin.html', (req, res) => res.redirect(301, '/admin'));
 // ---- Static files: serve ONLY the public folder, never the project root (C1) ----
 app.use(express.static(path.join(__dirname, 'public'), { dotfiles: 'deny', index: 'index.html' }));
 
-app.listen(PORT, () => console.log(`[server] http://localhost:${PORT}  (admin: /admin.html)`));
+// ---- 404: JSON for API, custom page for everything else ----
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'not found' });
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
+// ---- Central error handler (no stack leak to client) ----
+app.use((err, req, res, next) => {
+  console.error('[error]', err.message);
+  if (req.path.startsWith('/api/')) return res.status(500).json({ error: 'server error' });
+  res.status(500).sendFile(path.join(__dirname, 'public', '404.html'));
+});
+
+// ---- Last-resort handlers: log, don't crash silently ----
+process.on('unhandledRejection', (reason) => console.error('[unhandledRejection]', reason));
+process.on('uncaughtException', (err) => console.error('[uncaughtException]', err.message));
+
+app.listen(PORT, () => console.log(`[server] http://localhost:${PORT}  (admin: /admin)`));

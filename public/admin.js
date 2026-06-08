@@ -7,14 +7,32 @@ const api = (url, opts = {}) => fetch(API_BASE + url, {
 
 // ---- Auth ----
 async function checkAuth() {
-  const { admin } = await api('/api/me');
-  if (admin) { showDash(admin.username); } else { $('loginView').classList.remove('hidden'); $('dashView').classList.add('hidden'); }
+  const me = await api('/api/me');
+  if (me.admin) { showDash(me.admin.username, me.must_setup_2fa); }
+  else { $('loginView').classList.remove('hidden'); $('dashView').classList.add('hidden'); }
 }
-function showDash(name) {
+function showDash(name, mustSetup2fa) {
   $('loginView').classList.add('hidden');
   $('dashView').classList.remove('hidden');
   $('who').textContent = name;
   loadMessages(); loadEvents(); loadPosts(); loadGallery(); loadDonations(); loadSettings(); loadSecurity();
+  startIdleTimer();
+  if (mustSetup2fa) {
+    // Mandatory 2FA: lock the admin to the Security tab until 2FA is enabled.
+    document.querySelectorAll('.tabs button').forEach(b => { if (b.dataset.tab !== 'security') b.style.display = 'none'; });
+    tab('security');
+    const m = $('twofaMsg'); m.className = 'msg err'; m.textContent = '🔒 2FA is required. Set it up below to unlock the admin panel.'; m.classList.remove('hidden');
+  } else {
+    document.querySelectorAll('.tabs button').forEach(b => { b.style.display = ''; });
+  }
+}
+
+// ---- Idle auto-logout (matches server 30-min session) ----
+let idleTimer;
+function startIdleTimer() {
+  const reset = () => { clearTimeout(idleTimer); idleTimer = setTimeout(() => { alert('Logged out due to inactivity.'); logout(); }, 30 * 60 * 1000); };
+  ['click', 'keydown', 'mousemove', 'scroll'].forEach(ev => document.addEventListener(ev, reset, { passive: true }));
+  reset();
 }
 async function login() {
   const el = $('loginErr');
@@ -204,6 +222,29 @@ async function disable2fa() {
     el.className = 'msg ok'; el.textContent = '2FA disabled.'; el.classList.remove('hidden');
     $('twofaDisablePw').value = ''; loadSecurity();
   } catch (e) { el.className = 'msg err'; el.textContent = e.message; el.classList.remove('hidden'); }
+}
+function downloadBackup() {
+  // GET with the session cookie; browser saves the .db file
+  window.location = API_BASE + '/api/admin/backup';
+}
+async function uploadImage() {
+  const f = $('gFile').files[0];
+  if (!f) return;
+  const msg = $('gUpMsg');
+  msg.textContent = 'Uploading…';
+  const fd = new FormData();
+  fd.append('image', f);
+  try {
+    const r = await fetch(API_BASE + '/api/admin/upload', {
+      method: 'POST', credentials: 'include',
+      headers: { 'X-Requested-With': 'fetch' },   // no Content-Type — browser sets multipart boundary
+      body: fd
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'upload failed');
+    $('gImg').value = d.url;
+    msg.textContent = '✅ Uploaded. Click "Add / Save Image" to publish.';
+  } catch (e) { msg.textContent = '❌ ' + e.message; }
 }
 async function loadAudit() {
   const list = await api('/api/admin/audit');

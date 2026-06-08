@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Admin – Devi Murlika Gaur</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
 <style>
   body { background: var(--cream-2); }
@@ -119,8 +120,11 @@
     <!-- GALLERY -->
     <div id="t-gallery" class="panel hidden">
       <h3>Manage Gallery</h3>
-      <div class="hint">Paste an image URL, or use a local file you placed in the site folder (e.g. <code>photo1.jpg</code>).</div>
-      <label>Image URL / filename</label><input id="gImg" placeholder="https://...  or  photo1.jpg" />
+      <div class="hint">Upload a photo from your device, or paste an image URL.</div>
+      <label>Upload image (jpg/png/webp/gif, max 5MB)</label>
+      <input id="gFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="uploadImage()" />
+      <div id="gUpMsg" class="hint" style="margin-bottom:8px"></div>
+      <label>Image URL / filename</label><input id="gImg" placeholder="https://...  (auto-filled after upload)" />
       <div class="row">
         <div><label>Caption (optional)</label><input id="gCap" /></div>
         <div><label>Sort order</label><input id="gSort" type="number" value="0" /></div>
@@ -183,6 +187,11 @@
         <input id="twofaDisablePw" type="password" style="max-width:260px" />
         <button class="btn-sm btn-del" onclick="disable2fa()">Disable 2FA</button>
       </div>
+
+      <hr style="margin:24px 0;border:0;border-top:1px solid var(--line)" />
+      <h3>Database Backup</h3>
+      <div class="hint">Download a full copy of all data (admin, messages, events, posts, gallery, donations, settings). Store it somewhere safe — keep it private, it contains secrets.</div>
+      <button class="btn" onclick="downloadBackup()">⬇ Download Backup</button>
 
       <hr style="margin:24px 0;border:0;border-top:1px solid var(--line)" />
       <h3>Recent Login Attempts</h3>

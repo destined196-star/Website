@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#f4a93c"/>
+      <stop offset="100%" stop-color="#b5683e"/>
+    </radialGradient>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#g)"/>
+  <text x="32" y="44" font-size="38" text-anchor="middle" fill="#fff" font-family="Georgia, serif">ॐ</text>
+</svg>

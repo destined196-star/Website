@@ -75,7 +75,8 @@
       ev.preventDefault();
       const payload = {
         name: form.name.value, email: form.email.value, phone: form.phone?.value || '',
-        subject: form.subject?.value || '', message: form.message.value
+        subject: form.subject?.value || '', message: form.message.value,
+        company: form.company?.value || ''   // honeypot
       };
       const note = document.getElementById('formMsg');
       try {

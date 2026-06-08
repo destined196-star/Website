@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Donate – Devi Murlika Gaur</title>
 <meta name="description" content="Support the devotional mission of Devi Murlika Gaur — donate via Razorpay, UPI or PayPal." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
 <style>
   .donate-grid { display:grid; grid-template-columns:1fr 1fr; gap:30px; max-width:900px; margin:0 auto; }
@@ -98,7 +99,14 @@
         <div id="upiBlock">
           <img class="qr" id="upiQr" alt="UPI QR" />
           <div class="upi-id" id="upiId">—</div>
-          <p class="disabled-note">Scan QR or send to the UPI ID above.</p>
+          <a id="upiPayBtn" href="#" class="btn" style="width:100%">Pay with UPI app</a>
+          <div class="amount-row" id="upiAmtRow" style="margin-top:10px">
+            <button data-amt="101">₹101</button>
+            <button data-amt="251" class="sel">₹251</button>
+            <button data-amt="501">₹501</button>
+            <button data-amt="1100">₹1100</button>
+          </div>
+          <p class="disabled-note">On phone: opens GPay / PhonePe / BHIM / Paytm. On desktop: scan the QR.</p>
         </div>
         <div id="paypalBlock" style="margin-top:14px">
           <a id="paypalBtn" href="#" target="_blank" rel="noopener" class="btn btn-outline" style="border-color:var(--maroon);color:var(--maroon)">Donate via PayPal</a>
@@ -171,8 +179,22 @@ let settings = {};
   // UPI
   if (settings.upi_id) {
     document.getElementById('upiId').textContent = settings.upi_id;
-    const upiUrl = `upi://pay?pa=${encodeURIComponent(settings.upi_id)}&pn=${encodeURIComponent('Devi Murlika Gaur')}&cu=INR`;
-    document.getElementById('upiQr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(upiUrl);
+    let upiAmt = 251;
+    // Build a UPI deep link for the chosen amount. The upi:// scheme opens the
+    // phone's app chooser (GPay / PhonePe / BHIM / Paytm). QR mirrors the same link.
+    const buildUpi = amt => `upi://pay?pa=${encodeURIComponent(settings.upi_id)}`
+      + `&pn=${encodeURIComponent('Devi Murlika Gaur')}`
+      + `&am=${encodeURIComponent(amt)}&cu=INR&tn=${encodeURIComponent('Donation')}`;
+    const refreshUpi = () => {
+      const url = buildUpi(upiAmt);
+      document.getElementById('upiPayBtn').href = url;
+      document.getElementById('upiQr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(url);
+    };
+    document.querySelectorAll('#upiAmtRow button').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('#upiAmtRow button').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel'); upiAmt = Number(b.dataset.amt); refreshUpi();
+    }));
+    refreshUpi();
   } else {
     document.getElementById('upiBlock').innerHTML = '<p class="disabled-note">UPI not configured yet.</p>';
   }
