@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin – Devi Murlika Gaur</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  body { background: var(--cream-2); }
+  .admin-wrap { max-width: 1000px; margin: 30px auto; padding: 0 16px; }
+  .login-box { max-width: 380px; margin: 80px auto; background:#fff; padding:34px; border-radius:10px; box-shadow:0 8px 30px rgba(181,104,62,.15); border:1px solid var(--line); }
+  .login-box h2 { color: var(--maroon); text-align:center; margin-bottom:20px; }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px; margin-bottom:24px; }
+  .panel h3 { color: var(--maroon); margin-bottom:16px; border-bottom:2px solid var(--gold); padding-bottom:8px; }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+  .tabs button { padding:10px 18px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; font-family:inherit; font-weight:600; color:var(--ink); }
+  .tabs button.active { background: var(--saffron); color:#fff; border-color:var(--saffron); }
+  label { display:block; font-weight:600; color:var(--maroon); margin:10px 0 5px; font-size:14px; }
+  input, textarea { width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; margin-bottom:6px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .item { border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:12px; background:var(--cream); }
+  .item .meta { font-size:13px; color:var(--muted); }
+  .item h4 { color:var(--maroon); margin-bottom:4px; }
+  .actions { display:flex; gap:8px; margin-top:10px; }
+  .btn-sm { padding:6px 14px; font-size:13px; border:0; border-radius:5px; cursor:pointer; font-family:inherit; font-weight:600; }
+  .btn-edit { background:var(--gold); color:#fff; }
+  .btn-del { background:#c0563c; color:#fff; }
+  .topbaradmin { background:var(--maroon); color:#fff; padding:12px 0; }
+  .topbaradmin .container { display:flex; justify-content:space-between; align-items:center; }
+  .topbaradmin a { color:#ffe; cursor:pointer; }
+  .hidden { display:none; }
+  .msg { padding:10px 14px; border-radius:6px; margin-bottom:14px; font-size:14px; }
+  .msg.err { background:#fbe4dc; color:#9c3a1e; }
+  .msg.ok { background:#e3f3df; color:#3a7a2a; }
+  .hint { font-size:12px; color:var(--muted); margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginView">
+  <div class="login-box">
+    <h2>ॐ Admin Login</h2>
+    <div id="loginErr" class="msg err hidden"></div>
+    <label>Username</label>
+    <input id="lUser" type="text" autocomplete="username" />
+    <label>Password</label>
+    <input id="lPass" type="password" autocomplete="current-password" />
+    <div id="l2faWrap" class="hidden">
+      <label>6-digit authenticator code</label>
+      <input id="lToken" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" />
+    </div>
+    <button class="btn" style="width:100%;margin-top:14px;" onclick="login()">Login</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashView" class="hidden">
+  <div class="topbaradmin">
+    <div class="container">
+      <strong>Devi Murlika Gaur — Admin</strong>
+      <span>Hi, <b id="who"></b> &nbsp; | &nbsp; <a onclick="logout()">Logout</a> &nbsp; | &nbsp; <a href="index.html" target="_blank">View Site ↗</a></span>
+    </div>
+  </div>
+
+  <div class="admin-wrap">
+    <div class="tabs">
+      <button class="active" data-tab="messages" onclick="tab('messages')">Messages</button>
+      <button data-tab="events" onclick="tab('events')">Events</button>
+      <button data-tab="posts" onclick="tab('posts')">Blog / Thoughts</button>
+      <button data-tab="gallery" onclick="tab('gallery')">Gallery</button>
+      <button data-tab="donations" onclick="tab('donations')">Donations</button>
+      <button data-tab="settings" onclick="tab('settings')">Links & Bio</button>
+      <button data-tab="security" onclick="tab('security')">Security</button>
+      <button data-tab="password" onclick="tab('password')">Password</button>
+    </div>
+
+    <!-- MESSAGES -->
+    <div id="t-messages" class="panel">
+      <h3>Visitor Messages</h3>
+      <div class="hint">Details submitted via the Contact form (name, email, phone, message).</div>
+      <div id="msgList"></div>
+    </div>
+
+    <!-- EVENTS -->
+    <div id="t-events" class="panel hidden">
+      <h3>Manage Events</h3>
+      <div class="row">
+        <div><label>Day</label><input id="evDay" placeholder="12" /></div>
+        <div><label>Month</label><input id="evMonth" placeholder="Jul" /></div>
+      </div>
+      <label>Title</label><input id="evTitle" />
+      <label>Description</label><input id="evDesc" />
+      <div class="row">
+        <div><label>Link (optional)</label><input id="evLink" /></div>
+        <div><label>Sort order</label><input id="evSort" type="number" value="0" /></div>
+      </div>
+      <button class="btn" style="margin-top:10px" onclick="saveEvent()">Add / Save Event</button>
+      <input id="evId" type="hidden" />
+      <hr style="margin:20px 0;border:0;border-top:1px solid var(--line)" />
+      <div id="evList"></div>
+    </div>
+
+    <!-- POSTS -->
+    <div id="t-posts" class="panel hidden">
+      <h3>Manage Blog / Thoughts</h3>
+      <label>Title</label><input id="poTitle" />
+      <label>Body</label><textarea id="poBody" rows="3"></textarea>
+      <div class="row">
+        <div><label>Image URL</label><input id="poImg" placeholder="https://..." /></div>
+        <div><label>Date label</label><input id="poDate" placeholder="19 Nov 2025" /></div>
+      </div>
+      <button class="btn" style="margin-top:10px" onclick="savePost()">Add / Save Post</button>
+      <input id="poId" type="hidden" />
+      <hr style="margin:20px 0;border:0;border-top:1px solid var(--line)" />
+      <div id="poList"></div>
+    </div>
+
+    <!-- GALLERY -->
+    <div id="t-gallery" class="panel hidden">
+      <h3>Manage Gallery</h3>
+      <div class="hint">Paste an image URL, or use a local file you placed in the site folder (e.g. <code>photo1.jpg</code>).</div>
+      <label>Image URL / filename</label><input id="gImg" placeholder="https://...  or  photo1.jpg" />
+      <div class="row">
+        <div><label>Caption (optional)</label><input id="gCap" /></div>
+        <div><label>Sort order</label><input id="gSort" type="number" value="0" /></div>
+      </div>
+      <button class="btn" style="margin-top:10px" onclick="saveGallery()">Add / Save Image</button>
+      <input id="gId" type="hidden" />
+      <hr style="margin:20px 0;border:0;border-top:1px solid var(--line)" />
+      <div id="gList"></div>
+    </div>
+
+    <!-- DONATIONS -->
+    <div id="t-donations" class="panel hidden">
+      <h3>Donation Records</h3>
+      <div class="hint">Logged donations (online via Razorpay, or manually recorded UPI/PayPal).</div>
+      <div id="donList"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="t-settings" class="panel hidden">
+      <h3>Social Links, Contact & Bio</h3>
+      <div id="setMsg" class="msg ok hidden"></div>
+      <label>YouTube</label><input id="s_youtube" />
+      <label>Facebook</label><input id="s_facebook" />
+      <label>Instagram</label><input id="s_instagram" />
+      <label>Pinterest</label><input id="s_pinterest" />
+      <label>Phone</label><input id="s_phone" />
+      <label>Location</label><input id="s_location" />
+      <label>Bio</label><textarea id="s_bio" rows="4"></textarea>
+      <hr style="margin:20px 0;border:0;border-top:1px solid var(--line)" />
+      <h3>Donation Settings</h3>
+      <label>PayPal link (paypal.me/... or hosted button URL)</label><input id="s_paypal_link" />
+      <label>Razorpay Key ID (public key, rzp_...)</label><input id="s_razorpay_key" />
+      <label>UPI ID (e.g. name@upi)</label><input id="s_upi_id" />
+      <label>Donation note shown on page</label><textarea id="s_donation_note" rows="2"></textarea>
+      <button class="btn" style="margin-top:12px" onclick="saveSettings()">Save Settings</button>
+    </div>
+
+    <!-- SECURITY (2FA + login audit) -->
+    <div id="t-security" class="panel hidden">
+      <h3>Two-Factor Authentication (2FA)</h3>
+      <div class="hint">Adds a second step at login: a 6-digit code from an authenticator app (Google Authenticator, Authy, etc.). Even if someone steals the password, they cannot log in without your phone.</div>
+      <div id="twofaMsg" class="msg hidden"></div>
+
+      <div id="twofaOff">
+        <p style="margin:10px 0;color:var(--muted)">Status: <b style="color:#c0563c">Disabled</b></p>
+        <button class="btn" onclick="setup2fa()">Set up 2FA</button>
+        <div id="twofaSetup" class="hidden" style="margin-top:16px">
+          <p>1. Scan this QR in your authenticator app:</p>
+          <img id="twofaQr" style="width:180px;height:180px;border:1px solid var(--line);border-radius:8px;margin:10px 0" />
+          <p class="hint">Or enter this key manually: <code id="twofaSecret"></code></p>
+          <p>2. Enter the 6-digit code to confirm:</p>
+          <input id="twofaToken" type="text" inputmode="numeric" placeholder="123456" style="max-width:160px" />
+          <button class="btn" onclick="enable2fa()">Enable</button>
+        </div>
+      </div>
+
+      <div id="twofaOn" class="hidden">
+        <p style="margin:10px 0;color:var(--muted)">Status: <b style="color:#3a7a2a">Enabled ✓</b></p>
+        <label>Enter password to disable 2FA</label>
+        <input id="twofaDisablePw" type="password" style="max-width:260px" />
+        <button class="btn-sm btn-del" onclick="disable2fa()">Disable 2FA</button>
+      </div>
+
+      <hr style="margin:24px 0;border:0;border-top:1px solid var(--line)" />
+      <h3>Recent Login Attempts</h3>
+      <div class="hint">Watch for unexpected IPs or repeated failures — sign of an attack.</div>
+      <div id="auditList"></div>
+    </div>
+
+    <!-- PASSWORD -->
+    <div id="t-password" class="panel hidden">
+      <h3>Change Password</h3>
+      <div id="pwMsg" class="msg hidden"></div>
+      <label>Current password</label><input id="pwCur" type="password" />
+      <label>New password (min 8)</label><input id="pwNew" type="password" />
+      <button class="btn" style="margin-top:12px" onclick="changePw()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

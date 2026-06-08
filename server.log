@@ -1,0 +1,2 @@
+[mail] no SMTP env — messages stored in DB only
+[server] http://localhost:3000  (admin: /admin.html)

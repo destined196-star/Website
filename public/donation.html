@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Donate – Devi Murlika Gaur</title>
+<meta name="description" content="Support the devotional mission of Devi Murlika Gaur — donate via Razorpay, UPI or PayPal." />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .donate-grid { display:grid; grid-template-columns:1fr 1fr; gap:30px; max-width:900px; margin:0 auto; }
+  .donate-card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:28px; text-align:center; box-shadow:0 4px 14px rgba(0,0,0,.05); }
+  .donate-card h3 { color:var(--maroon); margin-bottom:10px; }
+  .donate-card p { color:var(--muted); font-size:14px; margin-bottom:16px; }
+  .amount-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:14px; }
+  .amount-row button { padding:8px 16px; border:1px solid var(--gold); background:#fff; border-radius:6px; cursor:pointer; font-weight:600; color:var(--maroon); font-family:inherit; }
+  .amount-row button.sel { background:var(--saffron); color:#fff; border-color:var(--saffron); }
+  .donate-card input { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:6px; margin-bottom:12px; font-family:inherit; }
+  .upi-id { font-size:18px; font-weight:bold; color:var(--maroon); background:var(--cream); padding:10px; border-radius:6px; margin-bottom:12px; word-break:break-all; }
+  .qr { width:160px; height:160px; margin:0 auto 12px; border:1px solid var(--line); border-radius:8px; }
+  .disabled-note { color:var(--muted); font-size:13px; font-style:italic; }
+  @media(max-width:760px){ .donate-grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="container">
+    <span>🙏 Sharing devotional thoughts &amp; spiritual wisdom</span>
+    <span class="social">
+      <a href="https://facebook.com/devimurlika" target="_blank" rel="noopener">Facebook</a>
+      <a href="https://instagram.com/devimurlika_madhu" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener">YouTube</a>
+      <a href="https://in.pinterest.com/devimurlikagaur/" target="_blank" rel="noopener">Pinterest</a>
+    </span>
+  </div>
+</div>
+
+<header class="header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">ॐ</div>
+      <div class="brand-text">
+        <h1>Devi Murlika Gaur</h1>
+        <small>Devotional thoughts &amp; spiritual wisdom</small>
+      </div>
+    </a>
+    <button class="menu-toggle" aria-label="menu">☰</button>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="introduction.html">About</a></li>
+        <li><a href="videos.html">Videos</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="events.html">Events</a></li>
+        <li><a href="donation.html" class="active">Donate</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<section class="page-banner">
+  <div class="container">
+    <h1>Support the Mission</h1>
+    <div class="breadcrumb"><a href="index.html">Home</a> &nbsp;›&nbsp; Donate</div>
+  </div>
+</section>
+
+<section class="intro">
+  <div class="container">
+    <div class="section-title">
+      <h2>Make a Contribution</h2>
+      <p id="donateNote" data-setting="donation_note">Your contribution helps spread the message of devotion. 🙏</p>
+    </div>
+
+    <div class="donate-grid">
+      <!-- Razorpay / Card / UPI via gateway -->
+      <div class="donate-card">
+        <h3>💳 Card / Netbanking / UPI</h3>
+        <p>Secure online payment via Razorpay.</p>
+        <div class="amount-row" id="amtRow">
+          <button data-amt="101">₹101</button>
+          <button data-amt="251" class="sel">₹251</button>
+          <button data-amt="501">₹501</button>
+          <button data-amt="1100">₹1100</button>
+        </div>
+        <input id="dName" placeholder="Your name (optional)" />
+        <input id="dEmail" type="email" placeholder="Your email (optional)" />
+        <input id="dAmt" type="number" placeholder="Custom amount (₹)" />
+        <button class="btn" style="width:100%" id="rzpBtn" onclick="payRazorpay()">Donate Now</button>
+        <p class="disabled-note" id="rzpNote" style="display:none;margin-top:10px">Online gateway not configured yet.</p>
+      </div>
+
+      <!-- UPI direct + PayPal -->
+      <div class="donate-card">
+        <h3>📱 UPI / PayPal</h3>
+        <p>Pay directly using any UPI app, or via PayPal.</p>
+        <div id="upiBlock">
+          <img class="qr" id="upiQr" alt="UPI QR" />
+          <div class="upi-id" id="upiId">—</div>
+          <p class="disabled-note">Scan QR or send to the UPI ID above.</p>
+        </div>
+        <div id="paypalBlock" style="margin-top:14px">
+          <a id="paypalBtn" href="#" target="_blank" rel="noopener" class="btn btn-outline" style="border-color:var(--maroon);color:var(--maroon)">Donate via PayPal</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Devi Murlika Gaur</h4>
+        <p>Spiritual speaker and devotional content creator sharing thoughts on bhakti, faith and inner peace with a growing community of seekers.</p>
+        <div class="social-icons">
+          <a href="https://facebook.com/devimurlika" target="_blank" rel="noopener">f</a>
+          <a href="https://instagram.com/devimurlika_madhu" target="_blank" rel="noopener">ig</a>
+          <a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener">yt</a>
+          <a href="https://in.pinterest.com/devimurlikagaur/" target="_blank" rel="noopener">p</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="introduction.html">About</a></li>
+          <li><a href="videos.html">Videos</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="donation.html">Donate</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Follow</h4>
+        <ul>
+          <li><a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://facebook.com/devimurlika" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a href="https://instagram.com/devimurlika_madhu" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://in.pinterest.com/devimurlikagaur/" target="_blank" rel="noopener">Pinterest</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <p>📍 India</p>
+        <p>📞 <a href="tel:+919289074102">+91 92890 74102</a></p>
+        <p>📺 <a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener">youtube.com/@devimurlikagaur</a></p>
+        <p>🙏 Joined 16 Sept 2017</p>
+      </div>
+    </div>
+    <div class="copyright">All Rights Reserved © 2025-26 Devi Murlika Gaur</div>
+  </div>
+</footer>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="public.js"></script>
+<script src="script.js"></script>
+<script>
+let selectedAmt = 251;
+let settings = {};
+(async function () {
+  try { settings = await fetch('/api/settings').then(r => r.json()); } catch (e) {}
+
+  // amount buttons
+  document.querySelectorAll('#amtRow button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#amtRow button').forEach(x => x.classList.remove('sel'));
+    b.classList.add('sel'); selectedAmt = Number(b.dataset.amt); document.getElementById('dAmt').value = '';
+  }));
+
+  // UPI
+  if (settings.upi_id) {
+    document.getElementById('upiId').textContent = settings.upi_id;
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(settings.upi_id)}&pn=${encodeURIComponent('Devi Murlika Gaur')}&cu=INR`;
+    document.getElementById('upiQr').src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(upiUrl);
+  } else {
+    document.getElementById('upiBlock').innerHTML = '<p class="disabled-note">UPI not configured yet.</p>';
+  }
+
+  // PayPal
+  if (settings.paypal_link) document.getElementById('paypalBtn').href = settings.paypal_link;
+  else document.getElementById('paypalBlock').innerHTML = '<p class="disabled-note">PayPal not configured yet.</p>';
+
+  // Razorpay availability — key present means gateway likely set
+  if (!settings.razorpay_key) {
+    document.getElementById('rzpBtn').disabled = true;
+    document.getElementById('rzpBtn').style.opacity = .5;
+    document.getElementById('rzpNote').style.display = 'block';
+  }
+})();
+
+async function payRazorpay() {
+  const amount = Number(document.getElementById('dAmt').value) || selectedAmt;
+  const name = document.getElementById('dName').value;
+  const email = document.getElementById('dEmail').value;
+  const H = { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' };
+  let order;
+  try {
+    order = await fetch('/api/donate/order', {
+      method: 'POST', headers: H, body: JSON.stringify({ amount })
+    }).then(r => r.json());
+    if (order.error) throw new Error(order.error);
+  } catch (e) { alert('Could not start payment.'); return; }
+
+  const rzp = new Razorpay({
+    key: order.key_id,
+    amount: order.amount,
+    currency: 'INR',
+    name: 'Devi Murlika Gaur',
+    description: 'Donation',
+    order_id: order.order_id,
+    prefill: { name, email },
+    theme: { color: '#f4a93c' },
+    handler: async function (resp) {
+      // Send signature to the server, which verifies it before recording (no client trust)
+      const r = await fetch('/api/donate/verify', {
+        method: 'POST', headers: H,
+        body: JSON.stringify({
+          razorpay_order_id: resp.razorpay_order_id,
+          razorpay_payment_id: resp.razorpay_payment_id,
+          razorpay_signature: resp.razorpay_signature,
+          name, email, amount
+        })
+      }).then(r => r.json()).catch(() => ({}));
+      alert(r.ok ? '🙏 Thank you for your donation!' : 'Payment could not be verified.');
+    }
+  });
+  rzp.open();
+}
+</script>
+</body>
+</html>
