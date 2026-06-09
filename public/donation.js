@@ -58,22 +58,36 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Custom amount
+  // Custom amount — update live on every keystroke + on Set/Enter
   function applyCustomAmt() {
     var input = document.getElementById('customAmt');
     var val = parseInt(input.value, 10);
-    if (!val || val < 1) { input.focus(); return; }
+    if (!val || val < 1) return;
     document.querySelectorAll('#upiAmtRow button').forEach(function (x) { x.classList.remove('sel'); });
     upiAmt = val;
     refreshUpi();
   }
-  var customBtn = document.getElementById('customAmtBtn');
-  if (customBtn) customBtn.addEventListener('click', applyCustomAmt);
   var customInput = document.getElementById('customAmt');
   if (customInput) {
+    // Live update as user types
+    customInput.addEventListener('input', applyCustomAmt);
     customInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') applyCustomAmt();
     });
+  }
+  var customBtn = document.getElementById('customAmtBtn');
+  if (customBtn) customBtn.addEventListener('click', applyCustomAmt);
+
+  // Safety net: on Pay button click, re-read custom input if filled
+  var payBtn2 = document.getElementById('upiPayBtn');
+  if (payBtn2) {
+    payBtn2.addEventListener('click', function() {
+      var ci = document.getElementById('customAmt');
+      if (ci && ci.value) {
+        var v = parseInt(ci.value, 10);
+        if (v > 0) { upiAmt = v; refreshUpi(); }
+      }
+    }, true); // capture phase — runs before other handlers
   }
 
   // Copy UPI ID
