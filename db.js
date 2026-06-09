@@ -139,9 +139,17 @@ if (db.prepare('SELECT COUNT(*) c FROM posts').get().c === 0) {
   ins.run('Finding Peace in a Busy Life', 'Simple spiritual practices to stay grounded amid the rush of modern living.', 'https://picsum.photos/seed/db2/600/400', '12 Nov 2025');
   ins.run('Gratitude as a Spiritual Practice', 'Why a thankful heart is the foundation of devotion and lasting happiness.', 'https://picsum.photos/seed/db3/600/400', '04 Nov 2025');
 }
-if (db.prepare('SELECT COUNT(*) c FROM gallery').get().c === 0) {
-  const ins = db.prepare('INSERT INTO gallery (image,caption,sort_order) VALUES (?,?,?)');
-  for (let i = 1; i <= 8; i++) ins.run(`https://picsum.photos/seed/gal${i}/500/500`, '', i);
+// Replace placeholder/malformed gallery images with real YouTube thumbnails
+const galBad = db.prepare("SELECT COUNT(*) c FROM gallery WHERE image LIKE '%picsum%' OR image LIKE '% %' OR image=''").get().c;
+if (galBad > 0 || db.prepare('SELECT COUNT(*) c FROM gallery').get().c === 0) {
+  db.prepare('DELETE FROM gallery').run();
+  const ytIns = db.prepare('INSERT INTO gallery (image,caption,sort_order) VALUES (?,?,?)');
+  const ytVids = [
+    ['0XgFXsRFWS4',''],['5lzHTKRmH2Y',''],['7zw6DCsVWQk',''],['8NmqWj8ySKc',''],
+    ['8fWlrpcbqyU',''],['AhANlTzF__s',''],['Aky615YKsJ8',''],['DiKizDW_Tbk',''],
+    ['FYGLo650Zbw',''],['N_tzLSrzAkQ',''],['SIKSk-LHn00',''],['SZ0NtF4HoJ8','']
+  ];
+  ytVids.forEach(([id, cap], i) => ytIns.run(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, `https://www.youtube.com/watch?v=${id}`, i + 1));
 }
 
 export default db;

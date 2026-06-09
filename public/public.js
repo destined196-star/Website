@@ -46,7 +46,7 @@
     try {
       const imgs = await get('/api/gallery');
       galWrap.innerHTML = imgs.map(g =>
-        `<a href="${esc(safeUrl(g.image))}" target="_blank" rel="noopener" title="${esc(g.caption)}"><img src="${esc(safeUrl(g.image))}" alt="${esc(g.caption)}" /></a>`
+        `<a href="${esc(safeUrl(g.caption || g.image))}" target="_blank" rel="noopener" title="Watch on YouTube"><img src="${esc(safeUrl(g.image))}" alt="Devi Murlika Gaur" /></a>`
       ).join('') || '<p style="text-align:center;color:var(--muted)">No images yet.</p>';
     } catch (e) {}
   }

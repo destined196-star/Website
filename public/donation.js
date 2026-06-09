@@ -25,6 +25,12 @@ function refreshUpi() {
   img.src = buildQrUrl(upiUrl);
 }
 
+// Restore button visibility when user returns via browser back button (bfcache)
+window.addEventListener('pageshow', function (e) {
+  var btn = document.getElementById('upiPayBtn');
+  if (btn) { btn.style.display = 'block'; btn.style.opacity = '1'; }
+});
+
 document.addEventListener('DOMContentLoaded', function () {
   // QR error → fallback to api.qrserver.com
   const img = document.getElementById('upiQr');
