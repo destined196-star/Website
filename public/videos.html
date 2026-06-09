@@ -7,6 +7,14 @@
 <meta name="description" content="Watch the latest devotional videos, bhajans and spiritual thoughts from Devi Murlika Gaur." />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
+<style>
+  .yt-thumb { position:relative; display:block; width:100%; padding-top:56.25%; background:#000; border-radius:10px; overflow:hidden; cursor:pointer; }
+  .yt-thumb img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity .2s; }
+  .yt-thumb:hover img { opacity:.8; }
+  .yt-thumb .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .yt-thumb .play svg { width:64px; height:64px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
+  .featured-thumb { border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.15); }
+</style>
 </head>
 <body>
 
@@ -60,11 +68,13 @@
       <h2>Latest from YouTube</h2>
       <p>Devotional videos, bhajans &amp; thoughts — straight from the channel</p>
     </div>
-    <div class="channel-embed">
-      <iframe src="https://www.youtube.com/embed/zZTmZzfKUEo"
-              title="Devi Murlika Gaur — Featured Video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen></iframe>
+    <div class="featured-thumb">
+      <a class="yt-thumb" href="https://www.youtube.com/watch?v=zZTmZzfKUEo" target="_blank" rel="noopener">
+        <img src="https://i.ytimg.com/vi/zZTmZzfKUEo/maxresdefault.jpg"
+             onerror="this.src='https://i.ytimg.com/vi/zZTmZzfKUEo/hqdefault.jpg'"
+             alt="Featured video — Devi Murlika Gaur" />
+        <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
+      </a>
     </div>
     <p style="text-align:center;margin-top:18px;">
       <a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener" class="btn">Visit Full Channel</a>
@@ -75,62 +85,50 @@
 <section class="offerings">
   <div class="container">
     <div class="section-title">
-      <h2>Featured Playlists</h2>
-      <p>Browse by theme on the channel</p>
+      <h2>More Videos</h2>
+      <p>Click any thumbnail to watch on YouTube</p>
     </div>
     <div class="video-grid">
       <div class="video-card">
-        <div class="video-frame">
-          <iframe src="https://www.youtube.com/embed/0XgFXsRFWS4"
-                  title="Devotional video"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen></iframe>
-        </div>
+        <a class="yt-thumb" href="https://www.youtube.com/watch?v=0XgFXsRFWS4" target="_blank" rel="noopener">
+          <img src="https://i.ytimg.com/vi/0XgFXsRFWS4/hqdefault.jpg" alt="Devotional Thoughts" />
+          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
+        </a>
         <div class="vc-body"><h4>Devotional Thoughts</h4></div>
       </div>
       <div class="video-card">
-        <div class="video-frame">
-          <iframe src="https://www.youtube.com/embed/AhANlTzF__s"
-                  title="Bhajan & Kirtan"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen></iframe>
-        </div>
+        <a class="yt-thumb" href="https://www.youtube.com/watch?v=AhANlTzF__s" target="_blank" rel="noopener">
+          <img src="https://i.ytimg.com/vi/AhANlTzF__s/hqdefault.jpg" alt="Bhajan & Kirtan" />
+          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
+        </a>
         <div class="vc-body"><h4>Bhajan &amp; Kirtan</h4></div>
       </div>
       <div class="video-card">
-        <div class="video-frame">
-          <iframe src="https://www.youtube.com/embed/SZ0NtF4HoJ8"
-                  title="Spiritual Wisdom"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen></iframe>
-        </div>
+        <a class="yt-thumb" href="https://www.youtube.com/watch?v=SZ0NtF4HoJ8" target="_blank" rel="noopener">
+          <img src="https://i.ytimg.com/vi/SZ0NtF4HoJ8/hqdefault.jpg" alt="Spiritual Wisdom" />
+          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
+        </a>
         <div class="vc-body"><h4>Spiritual Wisdom</h4></div>
       </div>
       <div class="video-card">
-        <div class="video-frame">
-          <iframe src="https://www.youtube.com/embed/DiKizDW_Tbk"
-                  title="Satsang"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen></iframe>
-        </div>
+        <a class="yt-thumb" href="https://www.youtube.com/watch?v=DiKizDW_Tbk" target="_blank" rel="noopener">
+          <img src="https://i.ytimg.com/vi/DiKizDW_Tbk/hqdefault.jpg" alt="Satsang" />
+          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
+        </a>
         <div class="vc-body"><h4>Satsang</h4></div>
       </div>
       <div class="video-card">
-        <div class="video-frame">
-          <iframe src="https://www.youtube.com/embed/FYGLo650Zbw"
-                  title="Kirtan"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen></iframe>
-        </div>
+        <a class="yt-thumb" href="https://www.youtube.com/watch?v=FYGLo650Zbw" target="_blank" rel="noopener">
+          <img src="https://i.ytimg.com/vi/FYGLo650Zbw/hqdefault.jpg" alt="Kirtan" />
+          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
+        </a>
         <div class="vc-body"><h4>Kirtan</h4></div>
       </div>
       <div class="video-card">
-        <div class="video-frame">
-          <iframe src="https://www.youtube.com/embed/N_tzLSrzAkQ"
-                  title="Bhakti"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen></iframe>
-        </div>
+        <a class="yt-thumb" href="https://www.youtube.com/watch?v=N_tzLSrzAkQ" target="_blank" rel="noopener">
+          <img src="https://i.ytimg.com/vi/N_tzLSrzAkQ/hqdefault.jpg" alt="Bhakti" />
+          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
+        </a>
         <div class="vc-body"><h4>Bhakti</h4></div>
       </div>
     </div>
