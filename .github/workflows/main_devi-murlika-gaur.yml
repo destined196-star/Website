@@ -55,6 +55,9 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B15966249E9242F1836391977943A813 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2B0599AD08E641FAB9E3592BEE43D283 }}
 
+      - name: Start Azure Web App
+        run: az webapp start --name devi-murlika-gaur --resource-group devi-murlika-rg
+
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -62,4 +65,8 @@ jobs:
           app-name: 'devi-murlika-gaur'
           slot-name: 'Production'
           package: .
+
+      - name: Restart Azure Web App
+        if: success()
+        run: az webapp restart --name devi-murlika-gaur --resource-group devi-murlika-rg
           
