@@ -33,13 +33,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
+      scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'https://picsum.photos', 'https://*.picsum.photos',
-        'https://i.ytimg.com', 'https://api.qrserver.com'],
-      frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.google.com',
-        'https://api.razorpay.com', 'https://checkout.razorpay.com'],
-      connectSrc: ["'self'", 'https://api.razorpay.com', 'https://lumberjack.razorpay.com'],
+        'https://i.ytimg.com', 'https://quickchart.io', 'https://api.qrserver.com'],
+      frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.google.com'],
+      connectSrc: ["'self'"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       frameAncestors: ["'self'"]

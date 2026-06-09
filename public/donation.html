@@ -86,7 +86,8 @@
           <img id="upiQr" alt="UPI QR" style="display:none" />
         </div>
 
-        <div class="upi-id" id="upiId">—
+        <div class="upi-id" id="upiId">
+          <span id="upiIdText">—</span>
           <button type="button" class="copy-btn" id="copyBtn" title="Copy UPI ID">📋 Copy</button>
         </div>
 
@@ -158,15 +159,21 @@
   try { settings = await fetch('/api/settings').then(r => r.json()); } catch (e) {}
 
   const upiId = settings.upi_id || '';
-  if (!upiId) return;
+  if (!upiId) {
+    document.getElementById('qrLoading').textContent = 'UPI not configured yet.';
+    return;
+  }
 
-  // Show UPI ID + copy button
-  document.getElementById('upiId').childNodes[0].textContent = upiId + ' ';
+  // Show UPI ID
+  document.getElementById('upiIdText').textContent = upiId;
   document.getElementById('copyBtn').addEventListener('click', function() {
     navigator.clipboard.writeText(upiId).then(() => {
       this.textContent = '✅ Copied';
       setTimeout(() => { this.textContent = '📋 Copy'; }, 2000);
-    }).catch(() => { this.textContent = '📋 Copy'; });
+    }).catch(() => {
+      // Fallback for browsers without clipboard API
+      prompt('Copy this UPI ID:', upiId);
+    });
   });
 
   let upiAmt = 251;
@@ -178,21 +185,29 @@
     '&cu=INR&tn=' + encodeURIComponent('Donation');
 
   const refreshUpi = () => {
-    const url = buildUpi(upiAmt);
+    const upiUrl = buildUpi(upiAmt);
     const btn = document.getElementById('upiPayBtn');
-    btn.href = url;
+    btn.href = upiUrl;
     btn.onclick = function(e) {
-      // On desktop, upi:// won't open — don't navigate
       if (!/android|iphone|ipad/i.test(navigator.userAgent)) {
         e.preventDefault();
-        alert('On desktop, please scan the QR code above with any UPI app.');
+        alert('On desktop: scan the QR code above with your UPI app (GPay / PhonePe / Paytm).');
       }
     };
     const img = document.getElementById('upiQr');
     const loading = document.getElementById('qrLoading');
+    const qrData = encodeURIComponent(upiUrl);
+    // Primary: quickchart.io — fallback: api.qrserver.com
     img.onload = () => { loading.style.display = 'none'; img.style.display = 'block'; };
-    img.onerror = () => { loading.textContent = 'QR unavailable — use UPI ID above.'; };
-    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(url);
+    img.onerror = function() {
+      if (!this.dataset.fallback) {
+        this.dataset.fallback = '1';
+        this.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + qrData;
+      } else {
+        loading.textContent = '⚠ QR unavailable. Use UPI ID above.';
+      }
+    };
+    img.src = 'https://quickchart.io/qr?text=' + qrData + '&size=160&margin=1';
   };
 
   // Amount buttons — all have type="button" so no page refresh
