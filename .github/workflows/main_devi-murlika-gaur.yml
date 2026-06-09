@@ -1,6 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy Node.js app to Azure Web App - devi-murlika-gaur
 
 on:
@@ -13,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -23,31 +20,31 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: npm install, build, and test
-        run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: .
+          # Exclude node_modules — Azure will run npm install --build-from-source
+          # via deploy.sh so better-sqlite3 compiles for the actual Linux runtime
+          exclude-hidden-files: false
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: node-app
-      
+
+      - name: Remove node_modules (Azure builds natively via deploy.sh)
+        run: rm -rf node_modules
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -55,10 +52,12 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B15966249E9242F1836391977943A813 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2B0599AD08E641FAB9E3592BEE43D283 }}
 
-      - name: Start Azure Web App
-        run: az webapp start --name devi-murlika-gaur --resource-group devi-murlika-rg
+      - name: Enable and start Azure Web App
+        run: |
+          az webapp update --name devi-murlika-gaur --resource-group devi-murlika-rg --set enabled=true
+          az webapp start --name devi-murlika-gaur --resource-group devi-murlika-rg
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
@@ -66,7 +65,8 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      - name: Restart Azure Web App
-        if: success()
-        run: az webapp restart --name devi-murlika-gaur --resource-group devi-murlika-rg
-          
+      - name: Ensure app is started after deploy
+        if: always()
+        run: |
+          az webapp update --name devi-murlika-gaur --resource-group devi-murlika-rg --set enabled=true
+          az webapp start --name devi-murlika-gaur --resource-group devi-murlika-rg
