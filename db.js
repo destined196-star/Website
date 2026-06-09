@@ -2,9 +2,19 @@ import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const db = new Database(path.join(__dirname, 'data.db'));
+
+// On Azure App Service, WEBSITE_INSTANCE_ID is always set.
+// Use /home/data.db there — /home persists across deployments.
+// Locally keep data.db in project root.
+const DB_PATH = process.env.WEBSITE_INSTANCE_ID
+  ? '/home/data.db'
+  : path.join(__dirname, 'data.db');
+const DB_DIR = path.dirname(DB_PATH);
+if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
+const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 
 db.exec(`

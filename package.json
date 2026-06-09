@@ -4,8 +4,13 @@
   "description": "Devi Murlika Gaur — devotional site with admin panel",
   "type": "module",
   "main": "server.js",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "npm rebuild better-sqlite3"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
