@@ -23,7 +23,6 @@
   .rupee-sym { font-size:16px; font-weight:700; color:var(--maroon); }
   .custom-amt-wrap input { flex:1; padding:9px 12px; border:1px solid var(--gold); border-radius:6px; font-size:15px; font-family:inherit; outline:none; }
   .custom-amt-wrap input:focus { border-color:var(--maroon); }
-  .custom-amt-wrap button { padding:9px 16px; background:var(--maroon); color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
   .copy-btn { background:none; border:none; cursor:pointer; color:var(--maroon); font-size:13px; text-decoration:underline; padding:0; font-family:inherit; margin-left:6px; }
 </style>
 </head>
@@ -105,7 +104,6 @@
         <div class="custom-amt-wrap">
           <span class="rupee-sym">₹</span>
           <input type="number" id="customAmt" placeholder="Enter custom amount" min="1" max="100000" />
-          <button type="button" id="customAmtBtn">Set</button>
         </div>
 
         <a id="upiPayBtn"
