@@ -19,6 +19,11 @@
   .qr-wrap { margin:0 auto 16px; width:180px; height:180px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fafafa; }
   .qr-wrap img { width:160px; height:160px; display:block; }
   .hint { color:var(--muted); font-size:12px; margin-top:10px; }
+  .custom-amt-wrap { display:flex; align-items:center; gap:6px; margin:10px 0 14px; }
+  .rupee-sym { font-size:16px; font-weight:700; color:var(--maroon); }
+  .custom-amt-wrap input { flex:1; padding:9px 12px; border:1px solid var(--gold); border-radius:6px; font-size:15px; font-family:inherit; outline:none; }
+  .custom-amt-wrap input:focus { border-color:var(--maroon); }
+  .custom-amt-wrap button { padding:9px 16px; background:var(--maroon); color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-family:inherit; white-space:nowrap; }
   .copy-btn { background:none; border:none; cursor:pointer; color:var(--maroon); font-size:13px; text-decoration:underline; padding:0; font-family:inherit; margin-left:6px; }
 </style>
 </head>
@@ -95,6 +100,12 @@
           <button type="button" data-amt="251" class="sel">₹251</button>
           <button type="button" data-amt="501">₹501</button>
           <button type="button" data-amt="1100">₹1100</button>
+        </div>
+
+        <div class="custom-amt-wrap">
+          <span class="rupee-sym">₹</span>
+          <input type="number" id="customAmt" placeholder="Enter custom amount" min="1" max="100000" />
+          <button type="button" id="customAmtBtn">Set</button>
         </div>
 
         <a id="upiPayBtn"

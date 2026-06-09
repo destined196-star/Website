@@ -52,9 +52,29 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       this.classList.add('sel');
       upiAmt = Number(this.dataset.amt);
+      var ci = document.getElementById('customAmt');
+      if (ci) ci.value = '';
       refreshUpi();
     });
   });
+
+  // Custom amount
+  function applyCustomAmt() {
+    var input = document.getElementById('customAmt');
+    var val = parseInt(input.value, 10);
+    if (!val || val < 1) { input.focus(); return; }
+    document.querySelectorAll('#upiAmtRow button').forEach(function (x) { x.classList.remove('sel'); });
+    upiAmt = val;
+    refreshUpi();
+  }
+  var customBtn = document.getElementById('customAmtBtn');
+  if (customBtn) customBtn.addEventListener('click', applyCustomAmt);
+  var customInput = document.getElementById('customAmt');
+  if (customInput) {
+    customInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') applyCustomAmt();
+    });
+  }
 
   // Copy UPI ID
   var copyBtn = document.getElementById('copyBtn');
