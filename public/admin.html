@@ -6,192 +6,447 @@
 <title>Admin – Devi Murlika Gaur</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  body { background: var(--cream-2); }
-  .admin-wrap { max-width: 1000px; margin: 30px auto; padding: 0 16px; }
-  .login-box { max-width: 380px; margin: 80px auto; background:#fff; padding:34px; border-radius:10px; box-shadow:0 8px 30px rgba(181,104,62,.15); border:1px solid var(--line); }
-  .login-box h2 { color: var(--maroon); text-align:center; margin-bottom:20px; }
-  .panel { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px; margin-bottom:24px; }
-  .panel h3 { color: var(--maroon); margin-bottom:16px; border-bottom:2px solid var(--gold); padding-bottom:8px; }
-  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
-  .tabs button { padding:10px 18px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; font-family:inherit; font-weight:600; color:var(--ink); }
-  .tabs button.active { background: var(--saffron); color:#fff; border-color:var(--saffron); }
-  label { display:block; font-weight:600; color:var(--maroon); margin:10px 0 5px; font-size:14px; }
-  input, textarea { width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-family:inherit; font-size:14px; margin-bottom:6px; }
-  .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  .item { border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:12px; background:var(--cream); }
-  .item .meta { font-size:13px; color:var(--muted); }
-  .item h4 { color:var(--maroon); margin-bottom:4px; }
-  .actions { display:flex; gap:8px; margin-top:10px; }
-  .btn-sm { padding:6px 14px; font-size:13px; border:0; border-radius:5px; cursor:pointer; font-family:inherit; font-weight:600; }
-  .btn-edit { background:var(--gold); color:#fff; }
-  .btn-del { background:#c0563c; color:#fff; }
-  .topbaradmin { background:var(--maroon); color:#fff; padding:12px 0; }
-  .topbaradmin .container { display:flex; justify-content:space-between; align-items:center; }
-  .topbaradmin a { color:#ffe; cursor:pointer; }
-  .hidden { display:none; }
-  .msg { padding:10px 14px; border-radius:6px; margin-bottom:14px; font-size:14px; }
-  .msg.err { background:#fbe4dc; color:#9c3a1e; }
-  .msg.ok { background:#e3f3df; color:#3a7a2a; }
-  .hint { font-size:12px; color:var(--muted); margin-bottom:10px; }
+/* ── Admin Shell ── */
+.admin-badge {
+  background: var(--maroon); color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 3px 9px; border-radius: 3px;
+  margin-left: 8px; vertical-align: middle; display: inline-block;
+}
+.topbar-admin-right { display: flex; gap: 16px; }
+.topbar-admin-right a { color: #ffe9a0; font-weight: 600; cursor: pointer; font-size: 13px; }
+.topbar-admin-right a:hover { color: #fff; }
+
+/* ── Tab nav ── */
+.admin-nav {
+  background: var(--maroon); overflow-x: auto; white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.admin-nav-inner { display: flex; }
+.admin-nav button {
+  background: none; border: none; color: rgba(255,255,255,.7);
+  padding: 14px 18px; font-size: 13px; font-weight: 700;
+  font-family: 'Rosario', sans-serif; cursor: pointer;
+  border-bottom: 3px solid transparent; transition: all .15s;
+  flex-shrink: 0; letter-spacing: .3px;
+}
+.admin-nav button:hover { color: #fff; }
+.admin-nav button.active { color: #fff; border-bottom-color: var(--gold); }
+
+/* ── Page body ── */
+.admin-body { background: var(--cream); min-height: 70vh; padding: 28px 0 60px; }
+.admin-section { display: none; }
+.admin-section.active { display: block; }
+
+/* ── Stats cards ── */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;
+}
+.stat-card {
+  background: #fff; border-radius: 10px; border: 1px solid var(--line);
+  padding: 20px 16px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,.05);
+  transition: transform .2s, box-shadow .2s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(92,51,23,.1); }
+.stat-icon { font-size: 30px; display: block; margin-bottom: 8px; }
+.stat-num { font-size: 2.2rem; font-weight: 800; color: var(--maroon); line-height: 1; }
+.stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; font-family: 'Rosario', sans-serif; }
+
+/* ── Charts row ── */
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 24px; }
+.chart-card {
+  background: #fff; border-radius: 10px; border: 1px solid var(--line);
+  padding: 20px 22px; box-shadow: 0 2px 12px rgba(0,0,0,.05);
+}
+.chart-card h4 {
+  font-size: 12px; color: var(--muted); font-family: 'Rosario', sans-serif;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;
+}
+
+/* ── Panels ── */
+.a-panel {
+  background: #fff; border-radius: 10px; border: 1px solid var(--line);
+  padding: 24px 26px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.05);
+}
+.a-panel > h3 {
+  color: var(--maroon); font-size: 1rem; margin-bottom: 18px;
+  padding-bottom: 10px; border-bottom: 2px solid var(--gold);
+  font-family: 'PT Serif', Georgia, serif;
+}
+
+/* ── Form fields ── */
+.f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.f-field { margin-bottom: 14px; }
+.f-field label {
+  display: block; font-size: 11px; font-weight: 700; color: var(--maroon);
+  margin-bottom: 5px; text-transform: uppercase; letter-spacing: .6px;
+  font-family: 'Rosario', sans-serif;
+}
+.f-field input, .f-field textarea, .f-field select {
+  width: 100%; padding: 9px 13px; border: 1px solid var(--line);
+  border-radius: 6px; font-family: inherit; font-size: 14px;
+  background: var(--cream); color: var(--ink); outline: none;
+  transition: border-color .2s; box-sizing: border-box;
+}
+.f-field input:focus, .f-field textarea:focus { border-color: var(--saffron); background: #fff; }
+.f-field textarea { resize: vertical; min-height: 90px; }
+
+/* ── Buttons ── */
+.btn-save {
+  background: var(--saffron); color: #fff; border: none; padding: 11px 28px;
+  border-radius: 5px; font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: 'PT Serif', Georgia, serif; letter-spacing: .5px;
+  box-shadow: 0 2px 8px rgba(200,134,14,.3); transition: background .2s;
+}
+.btn-save:hover { background: var(--saffron-dark); }
+.btn-clear {
+  background: #fff; color: var(--muted); border: 1px solid var(--line);
+  padding: 10px 18px; border-radius: 5px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; margin-left: 8px; transition: all .15s;
+}
+.btn-clear:hover { background: var(--cream); }
+.btn-edit {
+  background: var(--gold); color: #fff; border: none; padding: 6px 14px;
+  border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.btn-del {
+  background: #c0563c; color: #fff; border: none; padding: 6px 14px;
+  border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+
+/* ── Item cards (messages, events, posts) ── */
+.a-item {
+  border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+  margin-bottom: 10px; background: var(--cream); display: flex; gap: 14px;
+}
+.a-item-body { flex: 1; min-width: 0; }
+.a-item-body h4 { color: var(--maroon); margin-bottom: 4px; font-size: .95rem; }
+.a-item-body .meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.a-item-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+/* ── Gallery grid (matches public gallery) ── */
+.g-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px;
+}
+.g-cell {
+  position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+  background: var(--cream); border: 1px solid var(--line);
+}
+.g-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.g-overlay {
+  position: absolute; inset: 0; background: rgba(20,5,0,.65);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; opacity: 0; transition: opacity .2s;
+}
+.g-cell:hover .g-overlay { opacity: 1; }
+.g-cap {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,.5); color: #fff; font-size: 11px;
+  padding: 4px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── Upload zone ── */
+.upload-zone {
+  border: 2px dashed var(--gold); border-radius: 10px; padding: 28px 20px;
+  text-align: center; cursor: pointer; background: var(--cream);
+  transition: background .2s, border-color .2s;
+}
+.upload-zone:hover { background: #fef5d8; border-color: var(--saffron-dark); }
+.upload-zone input { display: none; }
+.uz-icon { font-size: 40px; display: block; margin-bottom: 10px; }
+.uz-text { font-size: 14px; color: var(--muted); margin: 0 0 6px; }
+.uz-status { font-size: 13px; font-weight: 600; color: var(--saffron-dark); min-height: 20px; }
+
+/* ── Toast notification ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  padding: 13px 22px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  color: #fff; box-shadow: 0 6px 24px rgba(0,0,0,.25);
+  transform: translateY(80px); opacity: 0; transition: all .3s; pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok { background: #3a7a2a; }
+.toast.err { background: #c0563c; }
+.toast.info { background: var(--maroon); }
+
+/* ── Dashboard recent messages ── */
+.dash-msg {
+  border-left: 3px solid var(--saffron); padding: 10px 14px; margin-bottom: 10px;
+  background: var(--cream); border-radius: 0 6px 6px 0;
+}
+.dash-msg .dm-who { font-weight: 700; color: var(--maroon); font-size: 14px; }
+.dash-msg .dm-time { font-size: 11px; color: var(--muted); margin-left: 8px; }
+.dash-msg .dm-text { font-size: 13px; color: var(--ink); margin-top: 4px; }
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+  .g-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+  .f-row { grid-template-columns: 1fr; }
+  .g-grid { grid-template-columns: repeat(2, 1fr); }
+  .admin-nav button { padding: 11px 12px; font-size: 12px; }
+}
 </style>
 </head>
 <body>
 
-<div id="loginView" class="hidden"></div>
-
-<!-- DASHBOARD -->
-<div id="dashView" class="hidden">
-  <div class="topbaradmin">
-    <div class="container">
-      <strong>Devi Murlika Gaur — Admin</strong>
-      <span>Hi, <b id="who"></b> &nbsp; | &nbsp; <a onclick="logout()">Logout</a> &nbsp; | &nbsp; <a href="index.html" target="_blank">View Site ↗</a></span>
-    </div>
-  </div>
-
-  <div class="admin-wrap">
-    <div class="tabs">
-      <button class="active" data-tab="messages" onclick="tab('messages')">Messages</button>
-      <button data-tab="events" onclick="tab('events')">Events</button>
-      <button data-tab="posts" onclick="tab('posts')">Blog / Thoughts</button>
-      <button data-tab="gallery" onclick="tab('gallery')">Gallery</button>
-      <button data-tab="donations" onclick="tab('donations')">Donations</button>
-      <button data-tab="settings" onclick="tab('settings')">Links & Bio</button>
-    </div>
-
-    <!-- MESSAGES -->
-    <div id="t-messages" class="panel">
-      <h3>Visitor Messages</h3>
-      <div class="hint">Details submitted via the Contact form (name, email, phone, message).</div>
-      <div id="msgList"></div>
-    </div>
-
-    <!-- EVENTS -->
-    <div id="t-events" class="panel hidden">
-      <h3>Manage Events</h3>
-      <div class="row">
-        <div><label>Day</label><input id="evDay" placeholder="12" /></div>
-        <div><label>Month</label><input id="evMonth" placeholder="Jul" /></div>
-      </div>
-      <label>Title</label><input id="evTitle" />
-      <label>Description</label><input id="evDesc" />
-      <div class="row">
-        <div><label>Link (optional)</label><input id="evLink" /></div>
-        <div><label>Sort order</label><input id="evSort" type="number" value="0" /></div>
-      </div>
-      <button class="btn" style="margin-top:10px" onclick="saveEvent()">Add / Save Event</button>
-      <input id="evId" type="hidden" />
-      <hr style="margin:20px 0;border:0;border-top:1px solid var(--line)" />
-      <div id="evList"></div>
-    </div>
-
-    <!-- POSTS -->
-    <div id="t-posts" class="panel hidden">
-      <h3>Manage Blog / Thoughts</h3>
-      <label>Title</label><input id="poTitle" />
-      <label>Body</label><textarea id="poBody" rows="3"></textarea>
-      <div class="row">
-        <div><label>Image URL</label><input id="poImg" placeholder="https://..." /></div>
-        <div><label>Date label</label><input id="poDate" placeholder="19 Nov 2025" /></div>
-      </div>
-      <button class="btn" style="margin-top:10px" onclick="savePost()">Add / Save Post</button>
-      <input id="poId" type="hidden" />
-      <hr style="margin:20px 0;border:0;border-top:1px solid var(--line)" />
-      <div id="poList"></div>
-    </div>
-
-    <!-- GALLERY -->
-    <div id="t-gallery" class="panel hidden">
-      <h3>Manage Gallery</h3>
-      <div class="hint">Upload a photo from your device, or paste an image URL.</div>
-      <label>Upload image (jpg/png/webp/gif, max 5MB)</label>
-      <input id="gFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="uploadImage()" />
-      <div id="gUpMsg" class="hint" style="margin-bottom:8px"></div>
-      <label>Image URL / filename</label><input id="gImg" placeholder="https://...  (auto-filled after upload)" />
-      <div class="row">
-        <div><label>Caption (optional)</label><input id="gCap" /></div>
-        <div><label>Sort order</label><input id="gSort" type="number" value="0" /></div>
-      </div>
-      <button class="btn" style="margin-top:10px" onclick="saveGallery()">Add / Save Image</button>
-      <input id="gId" type="hidden" />
-      <hr style="margin:20px 0;border:0;border-top:1px solid var(--line)" />
-      <div id="gList"></div>
-    </div>
-
-    <!-- DONATIONS -->
-    <div id="t-donations" class="panel hidden">
-      <h3>Donation Records</h3>
-      <div class="hint">Logged donations (online via Razorpay, or manually recorded UPI/PayPal).</div>
-      <div id="donList"></div>
-    </div>
-
-    <!-- SETTINGS -->
-    <div id="t-settings" class="panel hidden">
-      <h3>Social Links, Contact & Bio</h3>
-      <div id="setMsg" class="msg ok hidden"></div>
-      <label>YouTube</label><input id="s_youtube" />
-      <label>Facebook</label><input id="s_facebook" />
-      <label>Instagram</label><input id="s_instagram" />
-      <label>Pinterest</label><input id="s_pinterest" />
-      <label>Phone</label><input id="s_phone" />
-      <label>Location</label><input id="s_location" />
-      <label>Bio</label><textarea id="s_bio" rows="4"></textarea>
-      <hr style="margin:20px 0;border:0;border-top:1px solid var(--line)" />
-      <h3>Donation Settings</h3>
-      <label>PayPal link (paypal.me/... or hosted button URL)</label><input id="s_paypal_link" />
-      <label>Razorpay Key ID (public key, rzp_...)</label><input id="s_razorpay_key" />
-      <label>UPI ID (e.g. name@upi)</label><input id="s_upi_id" />
-      <label>Donation note shown on page</label><textarea id="s_donation_note" rows="2"></textarea>
-      <button class="btn" style="margin-top:12px" onclick="saveSettings()">Save Settings</button>
-    </div>
-
-    <!-- SECURITY (2FA + login audit) -->
-    <div id="t-security" class="panel hidden">
-      <h3>Two-Factor Authentication (2FA)</h3>
-      <div class="hint">Adds a second step at login: a 6-digit code from an authenticator app (Google Authenticator, Authy, etc.). Even if someone steals the password, they cannot log in without your phone.</div>
-      <div id="twofaMsg" class="msg hidden"></div>
-
-      <div id="twofaOff">
-        <p style="margin:10px 0;color:var(--muted)">Status: <b style="color:#c0563c">Disabled</b></p>
-        <button class="btn" onclick="setup2fa()">Set up 2FA</button>
-        <div id="twofaSetup" class="hidden" style="margin-top:16px">
-          <p>1. Scan this QR in your authenticator app:</p>
-          <img id="twofaQr" style="width:180px;height:180px;border:1px solid var(--line);border-radius:8px;margin:10px 0" />
-          <p class="hint">Or enter this key manually: <code id="twofaSecret"></code></p>
-          <p>2. Enter the 6-digit code to confirm:</p>
-          <input id="twofaToken" type="text" inputmode="numeric" placeholder="123456" style="max-width:160px" />
-          <button class="btn" onclick="enable2fa()">Enable</button>
-        </div>
-      </div>
-
-      <div id="twofaOn" class="hidden">
-        <p style="margin:10px 0;color:var(--muted)">Status: <b style="color:#3a7a2a">Enabled ✓</b></p>
-        <label>Enter password to disable 2FA</label>
-        <input id="twofaDisablePw" type="password" style="max-width:260px" />
-        <button class="btn-sm btn-del" onclick="disable2fa()">Disable 2FA</button>
-      </div>
-
-      <hr style="margin:24px 0;border:0;border-top:1px solid var(--line)" />
-      <h3>Database Backup</h3>
-      <div class="hint">Download a full copy of all data (admin, messages, events, posts, gallery, donations, settings). Store it somewhere safe — keep it private, it contains secrets.</div>
-      <button class="btn" onclick="downloadBackup()">⬇ Download Backup</button>
-
-      <hr style="margin:24px 0;border:0;border-top:1px solid var(--line)" />
-      <h3>Recent Login Attempts</h3>
-      <div class="hint">Watch for unexpected IPs or repeated failures — sign of an attack.</div>
-      <div id="auditList"></div>
-    </div>
-
-    <!-- PASSWORD -->
-    <div id="t-password" class="panel hidden">
-      <h3>Change Password</h3>
-      <div id="pwMsg" class="msg hidden"></div>
-      <label>Current password</label><input id="pwCur" type="password" />
-      <label>New password (min 8)</label><input id="pwNew" type="password" />
-      <button class="btn" style="margin-top:12px" onclick="changePw()">Update Password</button>
+<!-- Topbar -->
+<div class="topbar">
+  <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+    <span>🙏 Devi Murlika Gaur <span class="admin-badge">ADMIN</span></span>
+    <div class="topbar-admin-right">
+      <a href="index.html" target="_blank">View Site ↗</a>
+      <a onclick="location.href='index.html'">Exit Admin</a>
     </div>
   </div>
 </div>
+
+<!-- Header (same as public site) -->
+<header class="header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">ॐ</div>
+      <div class="brand-text">
+        <h1>Devi Murlika Gaur</h1>
+        <small>Admin Panel <span class="admin-badge" style="font-size:9px">ADMIN MODE</span></small>
+      </div>
+    </a>
+  </div>
+</header>
+
+<!-- Tab navigation -->
+<div class="admin-nav">
+  <div class="admin-nav-inner container" style="padding-top:0;padding-bottom:0">
+    <button class="active" data-tab="dashboard">📊 Dashboard</button>
+    <button data-tab="messages">💬 Messages</button>
+    <button data-tab="events">📅 Events</button>
+    <button data-tab="posts">✍️ Thoughts</button>
+    <button data-tab="gallery">🖼️ Gallery</button>
+    <button data-tab="donations">💛 Donations</button>
+    <button data-tab="settings">⚙️ Settings</button>
+  </div>
+</div>
+
+<div class="admin-body">
+<div class="container">
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="admin-section active" id="s-dashboard">
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-icon">💬</span>
+        <div class="stat-num" id="st-msg">–</div>
+        <div class="stat-lbl">Messages</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🖼️</span>
+        <div class="stat-num" id="st-gal">–</div>
+        <div class="stat-lbl">Gallery</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">📅</span>
+        <div class="stat-num" id="st-ev">–</div>
+        <div class="stat-lbl">Events</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">✍️</span>
+        <div class="stat-num" id="st-po">–</div>
+        <div class="stat-lbl">Thoughts</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <h4>Messages — Last 7 Days</h4>
+        <canvas id="chartMsgs" height="110"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Content Overview</h4>
+        <canvas id="chartOverview" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="a-panel">
+      <h3>Recent Messages</h3>
+      <div id="dashMsgList"><p style="color:var(--muted)">Loading…</p></div>
+    </div>
+
+  </div>
+
+  <!-- ══ MESSAGES ══ -->
+  <div class="admin-section" id="s-messages">
+    <div class="a-panel">
+      <h3>Visitor Messages</h3>
+      <div id="msgList"><p style="color:var(--muted)">Loading…</p></div>
+    </div>
+  </div>
+
+  <!-- ══ EVENTS ══ -->
+  <div class="admin-section" id="s-events">
+    <div class="a-panel">
+      <h3 id="evFormTitle">Add New Event</h3>
+      <div class="f-row">
+        <div class="f-field"><label>Day</label><input id="evDay" placeholder="12" /></div>
+        <div class="f-field"><label>Month</label><input id="evMonth" placeholder="Jul" /></div>
+      </div>
+      <div class="f-field"><label>Title</label><input id="evTitle" placeholder="Satsang at Vrindavan" /></div>
+      <div class="f-field"><label>Description</label><input id="evDesc" placeholder="Short description of the event" /></div>
+      <div class="f-row">
+        <div class="f-field"><label>Link (optional)</label><input id="evLink" placeholder="https://..." /></div>
+        <div class="f-field"><label>Sort order</label><input id="evSort" type="number" value="0" /></div>
+      </div>
+      <input id="evId" type="hidden" />
+      <button class="btn-save" onclick="saveEvent()">💾 Save Event</button>
+      <button class="btn-clear" onclick="clearEvent()">Clear</button>
+    </div>
+    <div class="a-panel">
+      <h3>All Events</h3>
+      <div id="evList"><p style="color:var(--muted)">Loading…</p></div>
+    </div>
+  </div>
+
+  <!-- ══ POSTS / THOUGHTS ══ -->
+  <div class="admin-section" id="s-posts">
+    <div class="a-panel">
+      <h3 id="poFormTitle">Add New Thought</h3>
+      <div class="f-field"><label>Title</label><input id="poTitle" placeholder="Title of the thought or post" /></div>
+      <div class="f-field"><label>Full Content / Body</label><textarea id="poBody" rows="6" placeholder="Write the full devotional thought here…"></textarea></div>
+      <div class="f-row">
+        <div class="f-field"><label>Image URL (optional)</label><input id="poImg" placeholder="https://..." /></div>
+        <div class="f-field"><label>Date Label</label><input id="poDate" placeholder="19 Nov 2025" /></div>
+      </div>
+      <input id="poId" type="hidden" />
+      <button class="btn-save" onclick="savePost()">💾 Save Post</button>
+      <button class="btn-clear" onclick="clearPost()">Clear</button>
+    </div>
+    <div class="a-panel">
+      <h3>All Thoughts</h3>
+      <div id="poList"><p style="color:var(--muted)">Loading…</p></div>
+    </div>
+  </div>
+
+  <!-- ══ GALLERY ══ -->
+  <div class="admin-section" id="s-gallery">
+    <div class="a-panel">
+      <h3>Upload Photo from Device</h3>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('gFile').click()">
+        <input type="file" id="gFile" accept="image/jpeg,image/png,image/webp,image/gif" />
+        <span class="uz-icon">📷</span>
+        <p class="uz-text">Click here to choose a photo from your device<br>
+          <small>JPG · PNG · WebP · GIF &nbsp;|&nbsp; Max 5 MB</small>
+        </p>
+        <div class="uz-status" id="gUpMsg"></div>
+      </div>
+
+      <div style="margin-top:20px">
+        <div class="f-row">
+          <div class="f-field">
+            <label>Image URL <small style="font-weight:400;text-transform:none">(auto-filled after upload, or paste a URL)</small></label>
+            <input id="gImg" placeholder="/uploads/photo.jpg  or  https://..." />
+          </div>
+          <div class="f-field">
+            <label>Caption (optional)</label>
+            <input id="gCap" placeholder="A short description" />
+          </div>
+        </div>
+        <div class="f-field" style="max-width:160px">
+          <label>Sort order</label>
+          <input id="gSort" type="number" value="0" />
+        </div>
+        <input id="gId" type="hidden" />
+        <button class="btn-save" onclick="saveGallery()">➕ Add / Update Image</button>
+        <button class="btn-clear" onclick="clearGallery()">Clear</button>
+      </div>
+    </div>
+
+    <div class="a-panel">
+      <h3>Gallery Photos (<span id="gCount">0</span>)</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Hover over any photo to edit or delete it.</p>
+      <div class="g-grid" id="gGrid">
+        <p style="color:var(--muted)">Loading…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DONATIONS ══ -->
+  <div class="admin-section" id="s-donations">
+    <div class="a-panel">
+      <h3>Donation Records</h3>
+      <div id="donList"><p style="color:var(--muted)">Loading…</p></div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS ══ -->
+  <div class="admin-section" id="s-settings">
+    <div class="a-panel">
+      <h3>Social Links &amp; Contact</h3>
+      <div class="f-row">
+        <div class="f-field"><label>YouTube URL</label><input id="s_youtube" /></div>
+        <div class="f-field"><label>Facebook URL</label><input id="s_facebook" /></div>
+      </div>
+      <div class="f-row">
+        <div class="f-field"><label>Instagram URL</label><input id="s_instagram" /></div>
+        <div class="f-field"><label>Pinterest URL</label><input id="s_pinterest" /></div>
+      </div>
+      <div class="f-row">
+        <div class="f-field"><label>Phone</label><input id="s_phone" /></div>
+        <div class="f-field"><label>Location</label><input id="s_location" /></div>
+      </div>
+      <div class="f-field"><label>Bio / About text</label><textarea id="s_bio" rows="4"></textarea></div>
+    </div>
+
+    <div class="a-panel">
+      <h3>Donation Settings</h3>
+      <div class="f-row">
+        <div class="f-field"><label>UPI ID</label><input id="s_upi_id" /></div>
+        <div class="f-field"><label>PayPal link</label><input id="s_paypal_link" /></div>
+      </div>
+      <div class="f-field"><label>Donation note (shown on Donate page)</label><textarea id="s_donation_note" rows="2"></textarea></div>
+      <div id="setMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:14px;font-weight:600;color:#3a7a2a;background:#e3f3df"></div>
+      <button class="btn-save" onclick="saveSettings()">💾 Save All Settings</button>
+    </div>
+
+    <div class="a-panel">
+      <h3>Database Backup</h3>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:14px">
+        Download a full copy of all site data (messages, gallery, events, posts, donations, settings).
+      </p>
+      <button class="btn-save" onclick="downloadBackup()">⬇ Download Backup</button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /admin-body -->
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Devi Murlika Gaur — Admin</h4>
+        <p>Manage site content, gallery, events and thoughts from this panel.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="index.html" target="_blank">Home</a></li>
+          <li><a href="gallery.html" target="_blank">Gallery</a></li>
+          <li><a href="events.html" target="_blank">Events</a></li>
+          <li><a href="blog.html" target="_blank">Thoughts</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="copyright">Admin Panel — All Rights Reserved © 2025-26 Devi Murlika Gaur</div>
+  </div>
+</footer>
 
 <script src="admin.js"></script>
 </body>
