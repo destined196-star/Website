@@ -40,6 +40,23 @@
 .admin-section { display: none; }
 .admin-section.active { display: block; }
 
+/* ── Tab header bar ── */
+.a-tab-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
+}
+.a-tab-header h2 {
+  font-family: 'PT Serif', Georgia, serif; color: var(--maroon);
+  font-size: 1.4rem; margin: 0;
+}
+.btn-add {
+  background: var(--maroon); color: #fff; border: none; padding: 10px 20px;
+  border-radius: 5px; font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: 'Rosario', sans-serif; letter-spacing: .4px;
+  transition: background .2s; white-space: nowrap;
+}
+.btn-add:hover { background: #5a1030; }
+
 /* ── Stats cards ── */
 .stats-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;
@@ -65,12 +82,21 @@
   font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;
 }
 
-/* ── Panels ── */
+/* ── Collapsible form panel ── */
 .a-panel {
   background: #fff; border-radius: 10px; border: 1px solid var(--line);
   padding: 24px 26px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.05);
 }
 .a-panel > h3 {
+  color: var(--maroon); font-size: 1rem; margin-bottom: 18px;
+  padding-bottom: 10px; border-bottom: 2px solid var(--gold);
+  font-family: 'PT Serif', Georgia, serif;
+}
+.a-form-panel {
+  background: #fff; border-radius: 10px; border: 2px solid var(--gold);
+  padding: 24px 26px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(200,134,14,.15);
+}
+.a-form-panel h3 {
   color: var(--maroon); font-size: 1rem; margin-bottom: 18px;
   padding-bottom: 10px; border-bottom: 2px solid var(--gold);
   font-family: 'PT Serif', Georgia, serif;
@@ -90,8 +116,11 @@
   background: var(--cream); color: var(--ink); outline: none;
   transition: border-color .2s; box-sizing: border-box;
 }
-.f-field input:focus, .f-field textarea:focus { border-color: var(--saffron); background: #fff; }
+.f-field input:focus, .f-field textarea:focus, .f-field select:focus {
+  border-color: var(--saffron); background: #fff;
+}
 .f-field textarea { resize: vertical; min-height: 90px; }
+.f-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 
 /* ── Buttons ── */
 .btn-save {
@@ -104,7 +133,7 @@
 .btn-clear {
   background: #fff; color: var(--muted); border: 1px solid var(--line);
   padding: 10px 18px; border-radius: 5px; font-size: 13px; font-weight: 600;
-  cursor: pointer; font-family: inherit; margin-left: 8px; transition: all .15s;
+  cursor: pointer; font-family: inherit; transition: all .15s;
 }
 .btn-clear:hover { background: var(--cream); }
 .btn-edit {
@@ -116,17 +145,98 @@
   border-radius: 5px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
 }
 
-/* ── Item cards (messages, events, posts) ── */
-.a-item {
-  border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
-  margin-bottom: 10px; background: var(--cream); display: flex; gap: 14px;
+/* ── Admin item action bar (on public-style items) ── */
+.admin-item-bar {
+  display: flex; gap: 8px; margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
-.a-item-body { flex: 1; min-width: 0; }
-.a-item-body h4 { color: var(--maroon); margin-bottom: 4px; font-size: .95rem; }
-.a-item-body .meta { font-size: 12px; color: var(--muted); line-height: 1.6; }
-.a-item-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 
-/* ── Gallery grid (matches public gallery) ── */
+/* ── Events in public style ── */
+.admin-events-wrap { max-width: 900px; }
+.admin-events-wrap .event {
+  background: #fff; border-radius: 8px; border: 1px solid var(--line);
+  margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  display: grid; grid-template-columns: 90px 1fr; gap: 20px;
+  padding: 20px;
+}
+.admin-events-wrap .event-info { display: flex; flex-direction: column; }
+.admin-events-wrap .event-info h4 { color: var(--maroon); margin-bottom: 4px; }
+.admin-events-wrap .event-info p { color: var(--muted); font-size: 14px; margin: 0; }
+.admin-events-wrap .event-info a { color: var(--saffron-dark); font-size: 13px; }
+
+/* ── Blog cards in public style ── */
+.admin-blog-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+.admin-blog-card {
+  background: #fff; border-radius: 8px; overflow: visible;
+  box-shadow: 0 4px 14px rgba(0,0,0,.06); border: 1px solid var(--line);
+  display: flex; flex-direction: column;
+}
+.admin-blog-card .blog-img {
+  width: 100%; height: 180px; object-fit: cover;
+  border-radius: 8px 8px 0 0; display: block;
+}
+.admin-blog-card .blog-img-ph {
+  width: 100%; height: 180px; background: linear-gradient(135deg, var(--saffron) 0%, var(--maroon) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; border-radius: 8px 8px 0 0;
+}
+.admin-blog-card .blog-body { padding: 18px; flex: 1; }
+.admin-blog-card .blog-date { color: var(--saffron-dark); font-size: 12px; margin-bottom: 6px; font-weight: 600; }
+.admin-blog-card h4 { color: var(--maroon); margin-bottom: 8px; font-size: .95rem; }
+.admin-blog-card p { color: var(--muted); font-size: 13px; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.admin-blog-card .admin-item-bar { margin: 0 18px 16px; padding-top: 10px; border-top: 1px solid var(--line); }
+
+/* ── Video grid in public style ── */
+.admin-video-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.admin-video-card {
+  background: #fff; border-radius: 8px; overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0,0,0,.07); border: 1px solid var(--line);
+}
+.admin-video-card .vc-thumb {
+  width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block;
+}
+.admin-video-card .vc-body { padding: 14px 16px; }
+.admin-video-card h4 { color: var(--maroon); font-size: .9rem; margin-bottom: 6px; line-height: 1.3; }
+.admin-video-card .meta { font-size: 12px; color: var(--muted); }
+.admin-video-card .admin-item-bar { margin: 0 16px 14px; padding-top: 8px; border-top: 1px solid var(--line); }
+.featured-badge {
+  background: var(--saffron); color: #fff; font-size: 10px; font-weight: 800;
+  padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 1px;
+  display: inline-block; margin-left: 6px; vertical-align: middle;
+}
+
+/* ── Press articles ── */
+.admin-press-list { max-width: 860px; }
+.admin-press-item {
+  background: #fff; border-radius: 8px; border: 1px solid var(--line);
+  margin-bottom: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.admin-press-item .pi-head {
+  display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+}
+.admin-press-item .pi-img {
+  width: 72px; height: 72px; object-fit: cover; border-radius: 6px; flex-shrink: 0;
+}
+.admin-press-item .pi-img-ph {
+  width: 72px; height: 72px; background: var(--cream); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0;
+}
+.admin-press-item .pi-info { flex: 1; min-width: 0; }
+.admin-press-item .pi-info h4 { color: var(--maroon); margin-bottom: 4px; font-size: .95rem; }
+.admin-press-item .pi-meta { font-size: 12px; color: var(--muted); }
+.admin-press-item .pi-body {
+  padding: 0 20px 14px; font-size: 14px; color: var(--ink); line-height: 1.65;
+  border-top: 1px solid var(--line); margin-top: 0; padding-top: 12px;
+  display: none;
+}
+.admin-press-item .pi-body.open { display: block; }
+.admin-press-item .admin-item-bar { margin: 8px 20px 14px; padding-top: 8px; border-top: 1px solid var(--line); }
+
+/* ── Gallery grid ── */
 .g-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px;
 }
@@ -159,6 +269,28 @@
 .uz-text { font-size: 14px; color: var(--muted); margin: 0 0 6px; }
 .uz-status { font-size: 13px; font-weight: 600; color: var(--saffron-dark); min-height: 20px; }
 
+/* ── Messages ── */
+.msg-card {
+  background: #fff; border-radius: 8px; border: 1px solid var(--line);
+  padding: 16px 20px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  border-left: 4px solid var(--saffron);
+}
+.msg-card .mc-who { font-weight: 700; color: var(--maroon); font-size: 15px; }
+.msg-card .mc-meta { font-size: 12px; color: var(--muted); margin: 4px 0 8px; }
+.msg-card .mc-body { font-size: 14px; color: var(--ink); line-height: 1.65; }
+
+/* ── Dashboard recent messages ── */
+.dash-msg {
+  border-left: 3px solid var(--saffron); padding: 10px 14px; margin-bottom: 10px;
+  background: var(--cream); border-radius: 0 6px 6px 0;
+}
+.dash-msg .dm-who { font-weight: 700; color: var(--maroon); font-size: 14px; }
+.dash-msg .dm-time { font-size: 11px; color: var(--muted); margin-left: 8px; }
+.dash-msg .dm-text { font-size: 13px; color: var(--ink); margin-top: 4px; }
+
+/* ── Settings ── */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
 /* ── Toast notification ── */
 .toast {
   position: fixed; bottom: 24px; right: 24px; z-index: 9999;
@@ -171,25 +303,23 @@
 .toast.err { background: #c0563c; }
 .toast.info { background: var(--maroon); }
 
-/* ── Dashboard recent messages ── */
-.dash-msg {
-  border-left: 3px solid var(--saffron); padding: 10px 14px; margin-bottom: 10px;
-  background: var(--cream); border-radius: 0 6px 6px 0;
-}
-.dash-msg .dm-who { font-weight: 700; color: var(--maroon); font-size: 14px; }
-.dash-msg .dm-time { font-size: 11px; color: var(--muted); margin-left: 8px; }
-.dash-msg .dm-text { font-size: 13px; color: var(--ink); margin-top: 4px; }
-
 /* ── Responsive ── */
+@media (max-width: 1000px) {
+  .admin-blog-grid { grid-template-columns: repeat(2, 1fr); }
+  .admin-video-grid { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 860px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .charts-row { grid-template-columns: 1fr; }
   .g-grid { grid-template-columns: repeat(3, 1fr); }
+  .settings-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
   .f-row { grid-template-columns: 1fr; }
   .g-grid { grid-template-columns: repeat(2, 1fr); }
   .admin-nav button { padding: 11px 12px; font-size: 12px; }
+  .admin-blog-grid { grid-template-columns: 1fr; }
+  .admin-video-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -206,7 +336,7 @@
   </div>
 </div>
 
-<!-- Header (same as public site) -->
+<!-- Header -->
 <header class="header">
   <div class="container">
     <a href="index.html" class="brand">
@@ -283,15 +413,21 @@
 
   <!-- ══ MESSAGES ══ -->
   <div class="admin-section" id="s-messages">
-    <div class="a-panel">
-      <h3>Visitor Messages</h3>
-      <div id="msgList"><p style="color:var(--muted)">Loading…</p></div>
+    <div class="a-tab-header">
+      <h2>Visitor Messages</h2>
     </div>
+    <div id="msgList"><p style="color:var(--muted)">Loading…</p></div>
   </div>
 
   <!-- ══ EVENTS ══ -->
   <div class="admin-section" id="s-events">
-    <div class="a-panel">
+    <div class="a-tab-header">
+      <h2>📅 Events</h2>
+      <button class="btn-add" onclick="toggleForm('evForm')">+ Add New Event</button>
+    </div>
+
+    <!-- Add / Edit form (hidden by default) -->
+    <div class="a-form-panel" id="evForm" style="display:none">
       <h3 id="evFormTitle">Add New Event</h3>
       <div class="f-row">
         <div class="f-field"><label>Day</label><input id="evDay" placeholder="12" /></div>
@@ -304,18 +440,26 @@
         <div class="f-field"><label>Sort order</label><input id="evSort" type="number" value="0" /></div>
       </div>
       <input id="evId" type="hidden" />
-      <button class="btn-save" onclick="saveEvent()">💾 Save Event</button>
-      <button class="btn-clear" onclick="clearEvent()">Clear</button>
+      <div class="f-actions">
+        <button class="btn-save" onclick="saveEvent()">💾 Save Event</button>
+        <button class="btn-clear" onclick="cancelForm('evForm'); clearEvent()">✕ Cancel</button>
+      </div>
     </div>
-    <div class="a-panel">
-      <h3>All Events</h3>
+
+    <!-- Events rendered like public site -->
+    <div class="admin-events-wrap">
       <div id="evList"><p style="color:var(--muted)">Loading…</p></div>
     </div>
   </div>
 
   <!-- ══ POSTS / THOUGHTS ══ -->
   <div class="admin-section" id="s-posts">
-    <div class="a-panel">
+    <div class="a-tab-header">
+      <h2>✍️ Thoughts &amp; Posts</h2>
+      <button class="btn-add" onclick="toggleForm('poForm')">+ Add New Post</button>
+    </div>
+
+    <div class="a-form-panel" id="poForm" style="display:none">
       <h3 id="poFormTitle">Add New Thought</h3>
       <div class="f-field"><label>Title</label><input id="poTitle" placeholder="Title of the thought or post" /></div>
       <div class="f-field"><label>Full Content / Body</label><textarea id="poBody" rows="6" placeholder="Write the full devotional thought here…"></textarea></div>
@@ -324,18 +468,26 @@
         <div class="f-field"><label>Date Label</label><input id="poDate" placeholder="19 Nov 2025" /></div>
       </div>
       <input id="poId" type="hidden" />
-      <button class="btn-save" onclick="savePost()">💾 Save Post</button>
-      <button class="btn-clear" onclick="clearPost()">Clear</button>
+      <div class="f-actions">
+        <button class="btn-save" onclick="savePost()">💾 Save Post</button>
+        <button class="btn-clear" onclick="cancelForm('poForm'); clearPost()">✕ Cancel</button>
+      </div>
     </div>
-    <div class="a-panel">
-      <h3>All Thoughts</h3>
-      <div id="poList"><p style="color:var(--muted)">Loading…</p></div>
+
+    <!-- Blog cards in public style -->
+    <div class="admin-blog-grid" id="poList">
+      <p style="color:var(--muted)">Loading…</p>
     </div>
   </div>
 
   <!-- ══ GALLERY ══ -->
   <div class="admin-section" id="s-gallery">
-    <div class="a-panel">
+    <div class="a-tab-header">
+      <h2>🖼️ Gallery</h2>
+      <button class="btn-add" onclick="toggleForm('galForm')">+ Add / Upload Photo</button>
+    </div>
+
+    <div class="a-form-panel" id="galForm" style="display:none">
       <h3>Upload Photo from Device</h3>
       <div class="upload-zone" id="uploadZone" onclick="document.getElementById('gFile').click()">
         <input type="file" id="gFile" accept="image/jpeg,image/png,image/webp,image/gif" />
@@ -345,11 +497,10 @@
         </p>
         <div class="uz-status" id="gUpMsg"></div>
       </div>
-
       <div style="margin-top:20px">
         <div class="f-row">
           <div class="f-field">
-            <label>Image URL <small style="font-weight:400;text-transform:none">(auto-filled after upload, or paste a URL)</small></label>
+            <label>Image URL <small style="font-weight:400;text-transform:none">(auto-filled after upload, or paste URL)</small></label>
             <input id="gImg" placeholder="/uploads/photo.jpg  or  https://..." />
           </div>
           <div class="f-field">
@@ -362,14 +513,18 @@
           <input id="gSort" type="number" value="0" />
         </div>
         <input id="gId" type="hidden" />
-        <button class="btn-save" onclick="saveGallery()">➕ Add / Update Image</button>
-        <button class="btn-clear" onclick="clearGallery()">Clear</button>
+        <div class="f-actions">
+          <button class="btn-save" onclick="saveGallery()">➕ Save Image</button>
+          <button class="btn-clear" onclick="cancelForm('galForm'); clearGallery()">✕ Cancel</button>
+        </div>
       </div>
     </div>
 
     <div class="a-panel">
-      <h3>Gallery Photos (<span id="gCount">0</span>)</h3>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Hover over any photo to edit or delete it.</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3 style="margin:0;padding:0;border:none">Gallery Photos (<span id="gCount">0</span>)</h3>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Hover over any photo to edit or delete.</p>
       <div class="g-grid" id="gGrid">
         <p style="color:var(--muted)">Loading…</p>
       </div>
@@ -378,30 +533,43 @@
 
   <!-- ══ VIDEOS ══ -->
   <div class="admin-section" id="s-videos">
-    <div class="a-panel">
+    <div class="a-tab-header">
+      <h2>🎬 Videos</h2>
+      <button class="btn-add" onclick="toggleForm('vidForm')">+ Add New Video</button>
+    </div>
+
+    <div class="a-form-panel" id="vidForm" style="display:none">
       <h3 id="vidFormTitle">Add New Video</h3>
       <div class="f-field"><label>Title</label><input id="vidTitle" placeholder="Bhajan title or video name" /></div>
       <div class="f-field"><label>YouTube URL</label><input id="vidUrl" placeholder="https://www.youtube.com/watch?v=..." /></div>
       <div class="f-field"><label>Description (optional)</label><input id="vidDesc" placeholder="Short description" /></div>
       <div class="f-row">
         <div class="f-field"><label>Sort order</label><input id="vidSort" type="number" value="0" /></div>
-        <div class="f-field"><label>Featured (show at top)</label>
+        <div class="f-field"><label>Featured (show at top of Videos page)</label>
           <select id="vidFeatured"><option value="0">No</option><option value="1">Yes — Featured</option></select>
         </div>
       </div>
       <input id="vidId" type="hidden" />
-      <button class="btn-save" onclick="saveVideo()">💾 Save Video</button>
-      <button class="btn-clear" onclick="clearVideo()">Clear</button>
+      <div class="f-actions">
+        <button class="btn-save" onclick="saveVideo()">💾 Save Video</button>
+        <button class="btn-clear" onclick="cancelForm('vidForm'); clearVideo()">✕ Cancel</button>
+      </div>
     </div>
-    <div class="a-panel">
-      <h3>All Videos</h3>
-      <div id="vidList"><p style="color:var(--muted)">Loading…</p></div>
+
+    <!-- Video grid in public style -->
+    <div class="admin-video-grid" id="vidList">
+      <p style="color:var(--muted)">Loading…</p>
     </div>
   </div>
 
   <!-- ══ PRESS ══ -->
   <div class="admin-section" id="s-press">
-    <div class="a-panel">
+    <div class="a-tab-header">
+      <h2>📰 Press &amp; Media</h2>
+      <button class="btn-add" onclick="toggleForm('pressForm')">+ Add Press Article</button>
+    </div>
+
+    <div class="a-form-panel" id="pressForm" style="display:none">
       <h3 id="pressFormTitle">Add Press Article</h3>
       <div class="f-field"><label>Headline / Title</label><input id="pressTitle" placeholder="Article headline" /></div>
       <div class="f-row">
@@ -409,62 +577,70 @@
         <div class="f-field"><label>Date label</label><input id="pressDate" placeholder="Aug 2023" /></div>
       </div>
       <div class="f-field"><label>Article content / summary</label><textarea id="pressContent" rows="5" placeholder="Full article content or summary…"></textarea></div>
-      <div class="f-field"><label>Image URL (optional)</label><input id="pressImg" placeholder="/images/press-1.jpg or https://..." /></div>
-      <div class="f-field" style="max-width:160px"><label>Sort order</label><input id="pressSort" type="number" value="0" /></div>
+      <div class="f-row">
+        <div class="f-field"><label>Image URL (optional)</label><input id="pressImg" placeholder="/images/press-1.jpg or https://..." /></div>
+        <div class="f-field"><label>Sort order</label><input id="pressSort" type="number" value="0" /></div>
+      </div>
       <input id="pressId" type="hidden" />
-      <button class="btn-save" onclick="savePress()">💾 Save Article</button>
-      <button class="btn-clear" onclick="clearPress()">Clear</button>
+      <div class="f-actions">
+        <button class="btn-save" onclick="savePress()">💾 Save Article</button>
+        <button class="btn-clear" onclick="cancelForm('pressForm'); clearPress()">✕ Cancel</button>
+      </div>
     </div>
-    <div class="a-panel">
-      <h3>All Press Articles</h3>
-      <div id="pressList"><p style="color:var(--muted)">Loading…</p></div>
+
+    <!-- Press in public style -->
+    <div class="admin-press-list" id="pressList">
+      <p style="color:var(--muted)">Loading…</p>
     </div>
   </div>
 
   <!-- ══ DONATIONS ══ -->
   <div class="admin-section" id="s-donations">
-    <div class="a-panel">
-      <h3>Donation Records</h3>
-      <div id="donList"><p style="color:var(--muted)">Loading…</p></div>
-    </div>
+    <div class="a-tab-header"><h2>💛 Donation Records</h2></div>
+    <div id="donList"><p style="color:var(--muted)">Loading…</p></div>
   </div>
 
   <!-- ══ SETTINGS ══ -->
   <div class="admin-section" id="s-settings">
-    <div class="a-panel">
-      <h3>Social Links &amp; Contact</h3>
-      <div class="f-row">
-        <div class="f-field"><label>YouTube URL</label><input id="s_youtube" /></div>
-        <div class="f-field"><label>Facebook URL</label><input id="s_facebook" /></div>
+    <div class="a-tab-header"><h2>⚙️ Site Settings</h2></div>
+
+    <div class="settings-grid">
+
+      <div class="a-panel">
+        <h3>🔗 Social Links</h3>
+        <div class="f-field"><label>YouTube</label><input id="s_youtube" placeholder="https://www.youtube.com/@..." /></div>
+        <div class="f-field"><label>Facebook</label><input id="s_facebook" placeholder="https://facebook.com/..." /></div>
+        <div class="f-field"><label>Instagram</label><input id="s_instagram" placeholder="https://instagram.com/..." /></div>
+        <div class="f-field"><label>Pinterest</label><input id="s_pinterest" placeholder="https://pinterest.com/..." /></div>
       </div>
-      <div class="f-row">
-        <div class="f-field"><label>Instagram URL</label><input id="s_instagram" /></div>
-        <div class="f-field"><label>Pinterest URL</label><input id="s_pinterest" /></div>
+
+      <div class="a-panel">
+        <h3>📞 Contact Info</h3>
+        <div class="f-field"><label>Phone</label><input id="s_phone" placeholder="+91 78271 83187" /></div>
+        <div class="f-field"><label>Location</label><input id="s_location" placeholder="Braj region, Vrindavan, UP" /></div>
+        <div class="f-field"><label>Bio / About text</label><textarea id="s_bio" rows="5" placeholder="A short bio shown on the About page…"></textarea></div>
       </div>
-      <div class="f-row">
-        <div class="f-field"><label>Phone</label><input id="s_phone" /></div>
-        <div class="f-field"><label>Location</label><input id="s_location" /></div>
+
+      <div class="a-panel">
+        <h3>💰 Donation Settings</h3>
+        <div class="f-field"><label>UPI ID</label><input id="s_upi_id" placeholder="example@upi" /></div>
+        <div class="f-field"><label>PayPal link</label><input id="s_paypal_link" placeholder="https://paypal.me/..." /></div>
+        <div class="f-field"><label>Donation note (shown on Donate page)</label><textarea id="s_donation_note" rows="3"></textarea></div>
       </div>
-      <div class="f-field"><label>Bio / About text</label><textarea id="s_bio" rows="4"></textarea></div>
+
+      <div class="a-panel">
+        <h3>💾 Data</h3>
+        <p style="color:var(--muted);font-size:14px;margin-bottom:16px">
+          Download a full backup of all site data (messages, gallery, events, posts, donations, settings).
+        </p>
+        <button class="btn-save" onclick="downloadBackup()">⬇ Download DB Backup</button>
+      </div>
+
     </div>
 
-    <div class="a-panel">
-      <h3>Donation Settings</h3>
-      <div class="f-row">
-        <div class="f-field"><label>UPI ID</label><input id="s_upi_id" /></div>
-        <div class="f-field"><label>PayPal link</label><input id="s_paypal_link" /></div>
-      </div>
-      <div class="f-field"><label>Donation note (shown on Donate page)</label><textarea id="s_donation_note" rows="2"></textarea></div>
-      <div id="setMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:14px;font-weight:600;color:#3a7a2a;background:#e3f3df"></div>
-      <button class="btn-save" onclick="saveSettings()">💾 Save All Settings</button>
-    </div>
-
-    <div class="a-panel">
-      <h3>Database Backup</h3>
-      <p style="color:var(--muted);font-size:14px;margin-bottom:14px">
-        Download a full copy of all site data (messages, gallery, events, posts, donations, settings).
-      </p>
-      <button class="btn-save" onclick="downloadBackup()">⬇ Download Backup</button>
+    <div style="margin-top:8px">
+      <div id="setMsg" style="display:none;padding:12px 16px;border-radius:6px;margin-bottom:14px;font-size:14px;font-weight:600;color:#3a7a2a;background:#e3f3df"></div>
+      <button class="btn-save" style="padding:13px 36px;font-size:15px" onclick="saveSettings()">💾 Save All Settings</button>
     </div>
   </div>
 
@@ -484,10 +660,12 @@
       <div class="footer-col">
         <h4>Quick Links</h4>
         <ul>
-          <li><a href="index.html" target="_blank">Home</a></li>
-          <li><a href="gallery.html" target="_blank">Gallery</a></li>
-          <li><a href="events.html" target="_blank">Events</a></li>
-          <li><a href="blog.html" target="_blank">Thoughts</a></li>
+          <li><a href="index.html" target="_blank">Home ↗</a></li>
+          <li><a href="gallery.html" target="_blank">Gallery ↗</a></li>
+          <li><a href="events.html" target="_blank">Events ↗</a></li>
+          <li><a href="videos.html" target="_blank">Videos ↗</a></li>
+          <li><a href="media.html" target="_blank">Press ↗</a></li>
+          <li><a href="blog.html" target="_blank">Thoughts ↗</a></li>
         </ul>
       </div>
     </div>

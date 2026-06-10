@@ -6,13 +6,17 @@ const $ = id => document.getElementById(id);
 const API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
 
 async function api(url, opts = {}) {
+  const headers = { 'X-Requested-With': 'fetch' };
+  if (!(opts.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
   const res = await fetch(API_BASE + url, {
-    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
     credentials: 'include',
+    headers,
     ...opts
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.status);
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
   return data;
 }
 
@@ -49,17 +53,38 @@ document.querySelectorAll('.admin-nav button').forEach(btn =>
   btn.addEventListener('click', () => switchTab(btn.dataset.tab))
 );
 
-/* ── Data stores (lookup by ID) ──────────────── */
+/* ── Form show/hide helpers ──────────────────── */
+function toggleForm(id) {
+  const el = $(id);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showForm(id) {
+  const el = $(id);
+  if (!el) return;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function cancelForm(id) {
+  const el = $(id);
+  if (el) el.style.display = 'none';
+}
+
+/* ── Data stores ─────────────────────────────── */
 let msgs = [], msgMap = {};
 let evts = [], evtMap = {};
 let posts = [], postMap = {};
 let gallery = [], galMap = {};
+let videos = [], videoMap = {};
+let pressArr = [], pressMap = {};
 
 /* ── Charts ──────────────────────────────────── */
 let _chartBar, _chartDough;
 
 function buildCharts() {
-  // Bar: messages per day last 7 days
   const labels = [], counts = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
@@ -67,7 +92,6 @@ function buildCharts() {
     const ds = d.toISOString().slice(0, 10);
     counts.push(msgs.filter(m => (m.created_at || '').startsWith(ds)).length);
   }
-
   const c1 = $('chartMsgs');
   if (c1 && typeof Chart !== 'undefined') {
     if (_chartBar) _chartBar.destroy();
@@ -75,11 +99,9 @@ function buildCharts() {
       type: 'bar',
       data: {
         labels,
-        datasets: [{
-          label: 'Messages', data: counts,
-          backgroundColor: 'rgba(232,166,30,.8)',
-          borderColor: '#c8860e', borderWidth: 1, borderRadius: 4
-        }]
+        datasets: [{ label: 'Messages', data: counts,
+          backgroundColor: 'rgba(232,166,30,.8)', borderColor: '#c8860e',
+          borderWidth: 1, borderRadius: 4 }]
       },
       options: {
         responsive: true,
@@ -88,8 +110,6 @@ function buildCharts() {
       }
     });
   }
-
-  // Doughnut: content breakdown
   const c2 = $('chartOverview');
   if (c2 && typeof Chart !== 'undefined') {
     if (_chartDough) _chartDough.destroy();
@@ -127,7 +147,6 @@ async function loadMessages() {
   msgMap = Object.fromEntries(msgs.map(m => [m.id, m]));
   updateCounts();
 
-  // Dashboard recent (top 5)
   const dash = $('dashMsgList');
   if (dash) {
     dash.innerHTML = msgs.length
@@ -142,19 +161,16 @@ async function loadMessages() {
       : '<p style="color:var(--muted)">No messages yet.</p>';
   }
 
-  // Messages tab
   const list = $('msgList');
   if (!list) return;
   list.innerHTML = msgs.length
     ? msgs.map(m => `
-      <div class="a-item">
-        <div class="a-item-body">
-          <h4>${esc(m.name)} <span class="meta">&lt;${esc(m.email)}&gt;</span></h4>
-          <div class="meta">📞 ${esc(m.phone) || '–'} &nbsp;·&nbsp; 🕒 ${esc(m.created_at || '')}</div>
-          <p style="font-size:14px;margin:6px 0 0;line-height:1.6">${esc(m.message)}</p>
-          <div class="a-item-actions">
-            <button class="btn-del msg-del" data-id="${m.id}">🗑 Delete</button>
-          </div>
+      <div class="msg-card">
+        <div class="mc-who">${esc(m.name)} <span style="font-weight:400;color:var(--muted)">&lt;${esc(m.email)}&gt;</span></div>
+        <div class="mc-meta">📞 ${esc(m.phone) || '–'} &nbsp;·&nbsp; 🕒 ${esc(m.created_at || '')}</div>
+        <div class="mc-body">${esc(m.message)}</div>
+        <div class="admin-item-bar">
+          <button class="btn-del msg-del" data-id="${m.id}">🗑 Delete</button>
         </div>
       </div>`).join('')
     : '<p style="color:var(--muted)">No messages yet.</p>';
@@ -166,10 +182,12 @@ async function loadMessages() {
 
 async function delMsg(id) {
   if (!confirm('Delete this message?')) return;
-  await api('/api/admin/messages/' + id, { method: 'DELETE' });
-  toast('Message deleted');
-  await loadMessages();
-  buildCharts();
+  try {
+    await api('/api/admin/messages/' + id, { method: 'DELETE' });
+    toast('Message deleted');
+    await loadMessages();
+    buildCharts();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 /* ══════════════════════════════════════════════
@@ -182,23 +200,33 @@ async function loadEvents() {
 
   const list = $('evList');
   if (!list) return;
-  list.innerHTML = evts.length
-    ? evts.map(e => `
-      <div class="a-item">
-        <div class="a-item-body">
-          <h4>📅 ${esc(e.day)} ${esc(e.month)} — ${esc(e.title)}</h4>
-          ${e.description ? `<div class="meta">${esc(e.description)}</div>` : ''}
-          ${e.link ? `<div class="meta">🔗 <a href="${esc(e.link)}" target="_blank" style="color:var(--saffron-dark)">${esc(e.link)}</a></div>` : ''}
-          <div class="a-item-actions">
-            <button class="btn-edit ev-edit" data-id="${e.id}">✏️ Edit</button>
-            <button class="btn-del ev-del" data-id="${e.id}">🗑 Delete</button>
-          </div>
+
+  if (!evts.length) {
+    list.innerHTML = '<p style="color:var(--muted)">No events yet. Click "+ Add New Event" above to create one.</p>';
+    return;
+  }
+
+  list.innerHTML = evts.map(e => `
+    <div style="background:#fff;border-radius:8px;border:1px solid var(--line);margin-bottom:12px;
+      box-shadow:0 2px 8px rgba(0,0,0,.04);display:grid;grid-template-columns:90px 1fr;
+      gap:20px;padding:20px;align-items:start">
+      <div class="event-date">
+        <div class="day">${esc(e.day || '–')}</div>
+        <div class="month">${esc(e.month || '')}</div>
+      </div>
+      <div>
+        <h4 style="color:var(--maroon);margin-bottom:4px">${esc(e.title)}</h4>
+        ${e.description ? `<p style="color:var(--muted);font-size:14px;margin:0 0 4px">${esc(e.description)}</p>` : ''}
+        ${e.link ? `<a href="${esc(e.link)}" target="_blank" style="color:var(--saffron-dark);font-size:13px">🔗 View event</a>` : ''}
+        <div class="admin-item-bar">
+          <button class="btn-edit ev-edit" data-id="${e.id}">✏️ Edit</button>
+          <button class="btn-del ev-del" data-id="${e.id}">🗑 Delete</button>
         </div>
-      </div>`).join('')
-    : '<p style="color:var(--muted)">No events yet. Add one above.</p>';
+      </div>
+    </div>`).join('');
 
   list.querySelectorAll('.ev-edit').forEach(btn =>
-    btn.addEventListener('click', () => { fillEvent(evtMap[btn.dataset.id]); })
+    btn.addEventListener('click', () => fillEvent(evtMap[btn.dataset.id]))
   );
   list.querySelectorAll('.ev-del').forEach(btn =>
     btn.addEventListener('click', () => delEvent(Number(btn.dataset.id)))
@@ -215,39 +243,47 @@ function fillEvent(e) {
   $('evLink').value = e.link || '';
   $('evSort').value = e.sort_order || 0;
   $('evFormTitle').textContent = 'Edit Event';
+  showForm('evForm');
   switchTab('events');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function clearEvent() {
-  ['evId', 'evDay', 'evMonth', 'evTitle', 'evDesc', 'evLink'].forEach(i => $(i).value = '');
-  $('evSort').value = 0;
-  $('evFormTitle').textContent = 'Add New Event';
+  ['evId', 'evDay', 'evMonth', 'evTitle', 'evDesc', 'evLink'].forEach(i => {
+    const el = $(i); if (el) el.value = '';
+  });
+  const s = $('evSort'); if (s) s.value = 0;
+  const t = $('evFormTitle'); if (t) t.textContent = 'Add New Event';
 }
 
 async function saveEvent() {
-  const id = $('evId').value;
   if (!$('evTitle').value.trim()) { toast('Title is required', 'err'); return; }
-  await api('/api/admin/events' + (id ? '/' + id : ''), {
-    method: id ? 'PUT' : 'POST',
-    body: JSON.stringify({
-      day: $('evDay').value, month: $('evMonth').value,
-      title: $('evTitle').value, description: $('evDesc').value,
-      link: $('evLink').value, sort_order: Number($('evSort').value) || 0
-    })
-  });
-  toast(id ? 'Event updated ✓' : 'Event added ✓');
-  clearEvent();
-  await loadEvents();
-  buildCharts();
+  const id = $('evId').value;
+  try {
+    await api('/api/admin/events' + (id ? '/' + id : ''), {
+      method: id ? 'PUT' : 'POST',
+      body: JSON.stringify({
+        day: $('evDay').value, month: $('evMonth').value,
+        title: $('evTitle').value, description: $('evDesc').value,
+        link: $('evLink').value, sort_order: Number($('evSort').value) || 0
+      })
+    });
+    toast(id ? 'Event updated ✓' : 'Event added ✓');
+    clearEvent();
+    cancelForm('evForm');
+    await loadEvents();
+    buildCharts();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 async function delEvent(id) {
   if (!confirm('Delete this event?')) return;
-  await api('/api/admin/events/' + id, { method: 'DELETE' });
-  toast('Event deleted');
-  await loadEvents();
-  buildCharts();
+  try {
+    await api('/api/admin/events/' + id, { method: 'DELETE' });
+    toast('Event deleted');
+    await loadEvents();
+    buildCharts();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 /* ══════════════════════════════════════════════
@@ -260,23 +296,27 @@ async function loadPosts() {
 
   const list = $('poList');
   if (!list) return;
-  list.innerHTML = posts.length
-    ? posts.map(p => `
-      <div class="a-item">
-        ${p.image ? `<img src="${esc(p.image)}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0" loading="lazy" />` : ''}
-        <div class="a-item-body">
-          <h4>${esc(p.title)}</h4>
-          <div class="meta">${esc(p.date_label || '')}</div>
-          <p style="font-size:13px;color:var(--muted);margin:4px 0 0;line-height:1.5">
-            ${esc((p.body || '').substring(0, 130))}${(p.body || '').length > 130 ? '…' : ''}
-          </p>
-          <div class="a-item-actions">
-            <button class="btn-edit po-edit" data-id="${p.id}">✏️ Edit</button>
-            <button class="btn-del po-del" data-id="${p.id}">🗑 Delete</button>
-          </div>
-        </div>
-      </div>`).join('')
-    : '<p style="color:var(--muted)">No thoughts yet. Add one above.</p>';
+
+  if (!posts.length) {
+    list.innerHTML = '<p style="color:var(--muted);grid-column:1/-1">No thoughts yet. Click "+ Add New Post" to create one.</p>';
+    return;
+  }
+
+  list.innerHTML = posts.map(p => `
+    <div class="admin-blog-card">
+      ${p.image
+        ? `<img class="blog-img" src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" onerror="this.style.display='none'" />`
+        : `<div class="blog-img-ph">🙏</div>`}
+      <div class="blog-body">
+        <div class="blog-date">${esc(p.date_label || '')}</div>
+        <h4>${esc(p.title)}</h4>
+        <p>${esc((p.body || '').substring(0, 130))}${(p.body || '').length > 130 ? '…' : ''}</p>
+      </div>
+      <div class="admin-item-bar">
+        <button class="btn-edit po-edit" data-id="${p.id}">✏️ Edit</button>
+        <button class="btn-del po-del" data-id="${p.id}">🗑 Delete</button>
+      </div>
+    </div>`).join('');
 
   list.querySelectorAll('.po-edit').forEach(btn =>
     btn.addEventListener('click', () => fillPost(postMap[btn.dataset.id]))
@@ -294,37 +334,45 @@ function fillPost(p) {
   $('poImg').value = p.image || '';
   $('poDate').value = p.date_label || '';
   $('poFormTitle').textContent = 'Edit Thought';
+  showForm('poForm');
   switchTab('posts');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function clearPost() {
-  ['poId', 'poTitle', 'poBody', 'poImg', 'poDate'].forEach(i => $(i).value = '');
-  $('poFormTitle').textContent = 'Add New Thought';
+  ['poId', 'poTitle', 'poBody', 'poImg', 'poDate'].forEach(i => {
+    const el = $(i); if (el) el.value = '';
+  });
+  const t = $('poFormTitle'); if (t) t.textContent = 'Add New Thought';
 }
 
 async function savePost() {
-  const id = $('poId').value;
   if (!$('poTitle').value.trim()) { toast('Title is required', 'err'); return; }
-  await api('/api/admin/posts' + (id ? '/' + id : ''), {
-    method: id ? 'PUT' : 'POST',
-    body: JSON.stringify({
-      title: $('poTitle').value, body: $('poBody').value,
-      image: $('poImg').value, date_label: $('poDate').value
-    })
-  });
-  toast(id ? 'Post updated ✓' : 'Post added ✓');
-  clearPost();
-  await loadPosts();
-  buildCharts();
+  const id = $('poId').value;
+  try {
+    await api('/api/admin/posts' + (id ? '/' + id : ''), {
+      method: id ? 'PUT' : 'POST',
+      body: JSON.stringify({
+        title: $('poTitle').value, body: $('poBody').value,
+        image: $('poImg').value, date_label: $('poDate').value
+      })
+    });
+    toast(id ? 'Post updated ✓' : 'Post added ✓');
+    clearPost();
+    cancelForm('poForm');
+    await loadPosts();
+    buildCharts();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 async function delPost(id) {
   if (!confirm('Delete this post?')) return;
-  await api('/api/admin/posts/' + id, { method: 'DELETE' });
-  toast('Post deleted');
-  await loadPosts();
-  buildCharts();
+  try {
+    await api('/api/admin/posts/' + id, { method: 'DELETE' });
+    toast('Post deleted');
+    await loadPosts();
+    buildCharts();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 /* ══════════════════════════════════════════════
@@ -342,7 +390,7 @@ async function loadGallery() {
   if (!grid) return;
 
   if (!gallery.length) {
-    grid.innerHTML = '<p style="color:var(--muted)">No images yet. Upload one above.</p>';
+    grid.innerHTML = '<p style="color:var(--muted)">No images yet. Click "+ Add / Upload Photo" above.</p>';
     return;
   }
 
@@ -357,7 +405,6 @@ async function loadGallery() {
       </div>
     </div>`).join('');
 
-  // Event delegation — no inline JSON, no fragile strings
   grid.querySelectorAll('.g-edit').forEach(btn =>
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -378,40 +425,46 @@ function fillGallery(g) {
   $('gImg').value = g.image || '';
   $('gCap').value = g.caption || '';
   $('gSort').value = g.sort_order || 0;
+  showForm('galForm');
   switchTab('gallery');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function clearGallery() {
-  ['gId', 'gImg', 'gCap'].forEach(i => $(i).value = '');
-  $('gSort').value = 0;
-  $('gUpMsg').textContent = '';
-  const gFile = $('gFile'); if (gFile) gFile.value = '';
+  ['gId', 'gImg', 'gCap'].forEach(i => { const el = $(i); if (el) el.value = ''; });
+  const gs = $('gSort'); if (gs) gs.value = 0;
+  const gm = $('gUpMsg'); if (gm) gm.textContent = '';
+  const gf = $('gFile'); if (gf) gf.value = '';
 }
 
 async function saveGallery() {
+  if (!$('gImg').value.trim()) { toast('Upload a photo first or paste an image URL', 'err'); return; }
   const id = $('gId').value;
-  if (!$('gImg').value.trim()) { toast('Image URL required', 'err'); return; }
-  await api('/api/admin/gallery' + (id ? '/' + id : ''), {
-    method: id ? 'PUT' : 'POST',
-    body: JSON.stringify({
-      image: $('gImg').value,
-      caption: $('gCap').value,
-      sort_order: Number($('gSort').value) || 0
-    })
-  });
-  toast(id ? 'Image updated ✓' : 'Image added ✓');
-  clearGallery();
-  await loadGallery();
-  buildCharts();
+  try {
+    await api('/api/admin/gallery' + (id ? '/' + id : ''), {
+      method: id ? 'PUT' : 'POST',
+      body: JSON.stringify({
+        image: $('gImg').value,
+        caption: $('gCap').value,
+        sort_order: Number($('gSort').value) || 0
+      })
+    });
+    toast(id ? 'Image updated ✓' : 'Image added ✓');
+    clearGallery();
+    cancelForm('galForm');
+    await loadGallery();
+    buildCharts();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 async function delGallery(id) {
   if (!confirm('Delete this image?')) return;
-  await api('/api/admin/gallery/' + id, { method: 'DELETE' });
-  toast('Image deleted');
-  await loadGallery();
-  buildCharts();
+  try {
+    await api('/api/admin/gallery/' + id, { method: 'DELETE' });
+    toast('Image deleted');
+    await loadGallery();
+    buildCharts();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 // File upload from device
@@ -421,7 +474,7 @@ if (gFileEl) {
     const file = this.files[0];
     if (!file) return;
     const statusEl = $('gUpMsg');
-    statusEl.textContent = '⏳ Uploading…';
+    if (statusEl) statusEl.textContent = '⏳ Uploading…';
     const fd = new FormData();
     fd.append('image', file);
     try {
@@ -431,11 +484,11 @@ if (gFileEl) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
-      $('gImg').value = data.url;
-      statusEl.textContent = '✅ Uploaded! Add a caption then click "Add / Update Image"';
+      const gi = $('gImg'); if (gi) gi.value = data.url;
+      if (statusEl) statusEl.textContent = '✅ Uploaded! Add a caption then click "Save Image"';
       toast('Photo uploaded!');
     } catch (e) {
-      statusEl.textContent = '❌ ' + e.message;
+      if (statusEl) statusEl.textContent = '❌ ' + e.message;
       toast(e.message, 'err');
     }
     this.value = '';
@@ -445,31 +498,38 @@ if (gFileEl) {
 /* ══════════════════════════════════════════════
    VIDEOS
    ══════════════════════════════════════════════ */
-let videos = [], videoMap = {};
-
 async function loadVideos() {
   videos = await api('/api/videos').catch(() => []);
   videoMap = Object.fromEntries(videos.map(v => [v.id, v]));
+
   const list = $('vidList');
   if (!list) return;
-  list.innerHTML = videos.length
-    ? videos.map(v => {
-        const vid = (v.youtube_url || '').match(/[?&]v=([^&]+)/)?.[1] || '';
-        return `
-        <div class="a-item">
-          ${vid ? `<img src="https://i.ytimg.com/vi/${vid}/default.jpg" style="width:80px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" />` : ''}
-          <div class="a-item-body">
-            <h4>${esc(v.title)} ${v.featured ? '<span style="background:var(--saffron);color:#fff;font-size:10px;padding:2px 7px;border-radius:3px;margin-left:6px">FEATURED</span>' : ''}</h4>
-            <div class="meta"><a href="${esc(v.youtube_url)}" target="_blank" style="color:var(--saffron-dark)">${esc(v.youtube_url)}</a></div>
-            ${v.description ? `<div class="meta">${esc(v.description)}</div>` : ''}
-            <div class="a-item-actions">
-              <button class="btn-edit vid-edit" data-id="${v.id}">✏️ Edit</button>
-              <button class="btn-del vid-del" data-id="${v.id}">🗑 Delete</button>
-            </div>
-          </div>
-        </div>`;
-      }).join('')
-    : '<p style="color:var(--muted)">No videos yet. Add one above.</p>';
+
+  if (!videos.length) {
+    list.innerHTML = '<p style="color:var(--muted);grid-column:1/-1">No videos yet. Click "+ Add New Video" above.</p>';
+    return;
+  }
+
+  list.innerHTML = videos.map(v => {
+    const vid = (v.youtube_url || '').match(/[?&]v=([^&]+)/)?.[1]
+      || (v.youtube_url || '').match(/youtu\.be\/([^?]+)/)?.[1] || '';
+    const thumb = vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : '';
+    return `
+    <div class="admin-video-card">
+      ${thumb
+        ? `<img class="vc-thumb" src="${esc(thumb)}" alt="${esc(v.title)}" loading="lazy" onerror="this.style.display='none'" />`
+        : `<div style="aspect-ratio:16/9;background:var(--maroon);display:flex;align-items:center;justify-content:center;font-size:36px">▶️</div>`}
+      <div class="vc-body">
+        <h4>${esc(v.title)}${v.featured ? '<span class="featured-badge">Featured</span>' : ''}</h4>
+        ${v.description ? `<div class="meta" style="margin-bottom:4px">${esc(v.description)}</div>` : ''}
+        <div class="meta"><a href="${esc(v.youtube_url)}" target="_blank" style="color:var(--saffron-dark)">Watch on YouTube ↗</a></div>
+      </div>
+      <div class="admin-item-bar">
+        <button class="btn-edit vid-edit" data-id="${v.id}">✏️ Edit</button>
+        <button class="btn-del vid-del" data-id="${v.id}">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
 
   list.querySelectorAll('.vid-edit').forEach(btn =>
     btn.addEventListener('click', () => fillVideo(videoMap[btn.dataset.id]))
@@ -488,62 +548,91 @@ function fillVideo(v) {
   $('vidSort').value = v.sort_order || 0;
   $('vidFeatured').value = v.featured ? '1' : '0';
   $('vidFormTitle').textContent = 'Edit Video';
+  showForm('vidForm');
   switchTab('videos');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function clearVideo() {
-  ['vidId', 'vidTitle', 'vidUrl', 'vidDesc'].forEach(i => $(i).value = '');
-  $('vidSort').value = 0; $('vidFeatured').value = '0';
-  $('vidFormTitle').textContent = 'Add New Video';
+  ['vidId', 'vidTitle', 'vidUrl', 'vidDesc'].forEach(i => { const el = $(i); if (el) el.value = ''; });
+  const vs = $('vidSort'); if (vs) vs.value = 0;
+  const vf = $('vidFeatured'); if (vf) vf.value = '0';
+  const vt = $('vidFormTitle'); if (vt) vt.textContent = 'Add New Video';
 }
 
 async function saveVideo() {
-  const id = $('vidId').value;
   if (!$('vidTitle').value.trim()) { toast('Title required', 'err'); return; }
   if (!$('vidUrl').value.trim()) { toast('YouTube URL required', 'err'); return; }
-  await api('/api/admin/videos' + (id ? '/' + id : ''), {
-    method: id ? 'PUT' : 'POST',
-    body: JSON.stringify({ title: $('vidTitle').value, youtube_url: $('vidUrl').value, description: $('vidDesc').value, featured: $('vidFeatured').value, sort_order: Number($('vidSort').value) || 0 })
-  });
-  toast(id ? 'Video updated ✓' : 'Video added ✓');
-  clearVideo(); await loadVideos();
+  const id = $('vidId').value;
+  try {
+    await api('/api/admin/videos' + (id ? '/' + id : ''), {
+      method: id ? 'PUT' : 'POST',
+      body: JSON.stringify({
+        title: $('vidTitle').value,
+        youtube_url: $('vidUrl').value,
+        description: $('vidDesc').value,
+        featured: $('vidFeatured').value,
+        sort_order: Number($('vidSort').value) || 0
+      })
+    });
+    toast(id ? 'Video updated ✓' : 'Video added ✓');
+    clearVideo();
+    cancelForm('vidForm');
+    await loadVideos();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 async function delVideo(id) {
   if (!confirm('Delete this video?')) return;
-  await api('/api/admin/videos/' + id, { method: 'DELETE' });
-  toast('Video deleted'); await loadVideos();
+  try {
+    await api('/api/admin/videos/' + id, { method: 'DELETE' });
+    toast('Video deleted');
+    await loadVideos();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 /* ══════════════════════════════════════════════
    PRESS ARTICLES
    ══════════════════════════════════════════════ */
-let pressArr = [], pressMap = {};
-
 async function loadPress() {
   pressArr = await api('/api/press').catch(() => []);
   pressMap = Object.fromEntries(pressArr.map(p => [p.id, p]));
+
   const list = $('pressList');
   if (!list) return;
-  list.innerHTML = pressArr.length
-    ? pressArr.map(p => `
-      <div class="a-item">
-        ${p.image ? `<img src="${esc(p.image)}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'" />` : ''}
-        <div class="a-item-body">
-          <h4>${esc(p.title)}</h4>
-          <div class="meta">📰 ${esc(p.publication || '–')} &nbsp;·&nbsp; ${esc(p.date_label || '')}</div>
-          <p style="font-size:13px;color:var(--muted);margin:4px 0 0;line-height:1.5">
-            ${esc((p.content || '').substring(0, 120))}${(p.content || '').length > 120 ? '…' : ''}
-          </p>
-          <div class="a-item-actions">
-            <button class="btn-edit pr-edit" data-id="${p.id}">✏️ Edit</button>
-            <button class="btn-del pr-del" data-id="${p.id}">🗑 Delete</button>
-          </div>
-        </div>
-      </div>`).join('')
-    : '<p style="color:var(--muted)">No press articles yet.</p>';
 
+  if (!pressArr.length) {
+    list.innerHTML = '<p style="color:var(--muted)">No press articles yet. Click "+ Add Press Article" above.</p>';
+    return;
+  }
+
+  list.innerHTML = pressArr.map(p => `
+    <div class="admin-press-item">
+      <div class="pi-head">
+        ${p.image
+          ? `<img class="pi-img" src="${esc(p.image)}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+          : `<div class="pi-img-ph">📰</div>`}
+        <div class="pi-info">
+          <h4>${esc(p.title)}</h4>
+          <div class="pi-meta">📰 ${esc(p.publication || '–')} &nbsp;·&nbsp; ${esc(p.date_label || '')}</div>
+          ${p.content ? `<button style="background:none;border:none;color:var(--saffron-dark);font-size:12px;cursor:pointer;padding:4px 0;font-weight:600" class="pi-toggle">▼ Show content</button>` : ''}
+        </div>
+      </div>
+      ${p.content ? `<div class="pi-body">${esc(p.content)}</div>` : ''}
+      <div class="admin-item-bar">
+        <button class="btn-edit pr-edit" data-id="${p.id}">✏️ Edit</button>
+        <button class="btn-del pr-del" data-id="${p.id}">🗑 Delete</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('.pi-toggle').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const body = btn.closest('.admin-press-item').querySelector('.pi-body');
+      if (!body) return;
+      body.classList.toggle('open');
+      btn.textContent = body.classList.contains('open') ? '▲ Hide content' : '▼ Show content';
+    })
+  );
   list.querySelectorAll('.pr-edit').forEach(btn =>
     btn.addEventListener('click', () => fillPress(pressMap[btn.dataset.id]))
   );
@@ -562,31 +651,48 @@ function fillPress(p) {
   $('pressImg').value = p.image || '';
   $('pressSort').value = p.sort_order || 0;
   $('pressFormTitle').textContent = 'Edit Press Article';
+  showForm('pressForm');
   switchTab('press');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function clearPress() {
-  ['pressId', 'pressTitle', 'pressPub', 'pressDate', 'pressContent', 'pressImg'].forEach(i => $(i).value = '');
-  $('pressSort').value = 0;
-  $('pressFormTitle').textContent = 'Add Press Article';
+  ['pressId', 'pressTitle', 'pressPub', 'pressDate', 'pressContent', 'pressImg'].forEach(i => {
+    const el = $(i); if (el) el.value = '';
+  });
+  const ps = $('pressSort'); if (ps) ps.value = 0;
+  const pt = $('pressFormTitle'); if (pt) pt.textContent = 'Add Press Article';
 }
 
 async function savePress() {
-  const id = $('pressId').value;
   if (!$('pressTitle').value.trim()) { toast('Title required', 'err'); return; }
-  await api('/api/admin/press' + (id ? '/' + id : ''), {
-    method: id ? 'PUT' : 'POST',
-    body: JSON.stringify({ title: $('pressTitle').value, publication: $('pressPub').value, date_label: $('pressDate').value, content: $('pressContent').value, image: $('pressImg').value, sort_order: Number($('pressSort').value) || 0 })
-  });
-  toast(id ? 'Article updated ✓' : 'Article added ✓');
-  clearPress(); await loadPress();
+  const id = $('pressId').value;
+  try {
+    await api('/api/admin/press' + (id ? '/' + id : ''), {
+      method: id ? 'PUT' : 'POST',
+      body: JSON.stringify({
+        title: $('pressTitle').value,
+        publication: $('pressPub').value,
+        date_label: $('pressDate').value,
+        content: $('pressContent').value,
+        image: $('pressImg').value,
+        sort_order: Number($('pressSort').value) || 0
+      })
+    });
+    toast(id ? 'Article updated ✓' : 'Article added ✓');
+    clearPress();
+    cancelForm('pressForm');
+    await loadPress();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 async function delPress(id) {
   if (!confirm('Delete this article?')) return;
-  await api('/api/admin/press/' + id, { method: 'DELETE' });
-  toast('Article deleted'); await loadPress();
+  try {
+    await api('/api/admin/press/' + id, { method: 'DELETE' });
+    toast('Article deleted');
+    await loadPress();
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 /* ══════════════════════════════════════════════
@@ -598,15 +704,13 @@ async function loadDonations() {
   if (!el) return;
   el.innerHTML = list.length
     ? list.map(d => `
-      <div class="a-item">
-        <div class="a-item-body">
-          <h4>₹${esc(String(d.amount))} <span class="meta">via ${esc(d.method || '–')}</span></h4>
-          <div class="meta">
-            ${esc(d.name) || 'Anonymous'}${d.email ? ` &lt;${esc(d.email)}&gt;` : ''}
-            &nbsp;·&nbsp; ${esc(d.created_at || '')}
-          </div>
-          ${d.reference ? `<div class="meta">Ref: ${esc(d.reference)}</div>` : ''}
+      <div class="msg-card" style="border-left-color:var(--gold)">
+        <div class="mc-who">₹${esc(String(d.amount))} <span style="font-weight:400;color:var(--muted)">via ${esc(d.method || '–')}</span></div>
+        <div class="mc-meta">
+          ${esc(d.name) || 'Anonymous'}${d.email ? ` &lt;${esc(d.email)}&gt;` : ''}
+          &nbsp;·&nbsp; ${esc(d.created_at || '')}
         </div>
+        ${d.reference ? `<div class="mc-body">Ref: ${esc(d.reference)}</div>` : ''}
       </div>`).join('')
     : '<p style="color:var(--muted)">No donations recorded yet.</p>';
 }
@@ -631,14 +735,16 @@ async function loadSettings() {
 async function saveSettings() {
   const body = {};
   SETTINGS_KEYS.forEach(k => { const el = $('s_' + k); if (el) body[k] = el.value; });
-  await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(body) });
-  const msg = $('setMsg');
-  if (msg) {
-    msg.textContent = '✅ Settings saved! Changes are live on the site.';
-    msg.style.display = 'block';
-    setTimeout(() => { msg.style.display = 'none'; }, 3500);
-  }
-  toast('Settings saved ✓');
+  try {
+    await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(body) });
+    const msg = $('setMsg');
+    if (msg) {
+      msg.textContent = '✅ Settings saved! Changes are now live on the site.';
+      msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; }, 3500);
+    }
+    toast('Settings saved ✓');
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
 }
 
 function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
@@ -647,10 +753,18 @@ function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
    INIT
    ══════════════════════════════════════════════ */
 async function init() {
-  await Promise.all([loadMessages(), loadGallery(), loadEvents(), loadPosts(), loadVideos(), loadPress()]);
-  buildCharts();
-  loadDonations();
-  loadSettings();
+  try {
+    await Promise.all([
+      loadMessages(), loadGallery(), loadEvents(),
+      loadPosts(), loadVideos(), loadPress()
+    ]);
+    buildCharts();
+    loadDonations();
+    loadSettings();
+  } catch (e) {
+    console.error('Admin init error:', e);
+    toast('Load error: ' + e.message, 'err');
+  }
 }
 
 init();
