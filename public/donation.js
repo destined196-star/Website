@@ -1,5 +1,5 @@
-// Donation page — UPI amount selector + QR updater
-// Loaded as external script (inline scripts blocked by CSP script-src 'self')
+// Donation page — amount selector updates Pay button only
+// QR code is STATIC (no amount encoded) — never changes
 
 const UPI_ID = 'mab.037215011050006@axisbank';
 const UPI_NAME = 'Devi Murlika Gaur';
@@ -12,82 +12,74 @@ function buildUpiUrl(amt) {
     + '&cu=INR&tn=Donation';
 }
 
-function buildQrUrl(upiUrl) {
-  return 'https://quickchart.io/qr?text=' + encodeURIComponent(upiUrl) + '&size=160&margin=1';
+// Only updates the Pay button href — QR is never touched
+function refreshPayBtn() {
+  var btn = document.getElementById('upiPayBtn');
+  if (btn) btn.href = buildUpiUrl(upiAmt);
 }
 
-function refreshUpi() {
-  const upiUrl = buildUpiUrl(upiAmt);
-  const img = document.getElementById('upiQr');
-  const btn = document.getElementById('upiPayBtn');
-  btn.href = upiUrl;
-  img.dataset.fallback = '';
-  img.src = buildQrUrl(upiUrl);
-}
-
-// Restore button visibility when user returns via browser back button (bfcache)
-window.addEventListener('pageshow', function (e) {
+// Restore Pay button after Android back navigation (bfcache)
+window.addEventListener('pageshow', function () {
   var btn = document.getElementById('upiPayBtn');
   if (btn) { btn.style.display = 'block'; btn.style.opacity = '1'; }
 });
 
+// QR fallback (static src, loaded once)
 document.addEventListener('DOMContentLoaded', function () {
-  // QR error → fallback to api.qrserver.com
-  const img = document.getElementById('upiQr');
+  var img = document.getElementById('upiQr');
   if (img) {
     img.onerror = function () {
       if (!this.dataset.fallback) {
         this.dataset.fallback = '1';
-        this.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data='
-          + encodeURIComponent(buildUpiUrl(upiAmt));
+        // Fallback static QR — still no amount
+        this.src = 'https://api.qrserver.com/v1/create-qr-code/?size=172x172&data='
+          + encodeURIComponent('upi://pay?pa=' + UPI_ID + '&pn=' + encodeURIComponent(UPI_NAME) + '&cu=INR');
       }
     };
   }
 
-  // Amount buttons
+  // Amount preset buttons
   document.querySelectorAll('#upiAmtRow button').forEach(function (b) {
     b.addEventListener('click', function () {
-      document.querySelectorAll('#upiAmtRow button').forEach(function (x) {
-        x.classList.remove('sel');
-      });
+      document.querySelectorAll('#upiAmtRow button').forEach(function (x) { x.classList.remove('sel'); });
       this.classList.add('sel');
       upiAmt = Number(this.dataset.amt);
       var ci = document.getElementById('customAmt');
       if (ci) ci.value = '';
-      refreshUpi();
+      refreshPayBtn();
     });
   });
 
-  // Custom amount — update live on every keystroke + on Set/Enter
+  // Custom amount
   function applyCustomAmt() {
     var input = document.getElementById('customAmt');
     var val = parseInt(input.value, 10);
     if (!val || val < 1) return;
     document.querySelectorAll('#upiAmtRow button').forEach(function (x) { x.classList.remove('sel'); });
     upiAmt = val;
-    refreshUpi();
+    refreshPayBtn();
   }
   var customInput = document.getElementById('customAmt');
   if (customInput) {
-    // Live update as user types
     customInput.addEventListener('input', applyCustomAmt);
-    customInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') applyCustomAmt();
-    });
+    customInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyCustomAmt(); });
   }
-  var customBtn = document.getElementById('customAmtBtn');
-  if (customBtn) customBtn.addEventListener('click', applyCustomAmt);
 
-  // Safety net: on Pay button click, re-read custom input if filled
-  var payBtn2 = document.getElementById('upiPayBtn');
-  if (payBtn2) {
-    payBtn2.addEventListener('click', function() {
+  // Safety net: re-read custom input on Pay click (capture phase)
+  var payBtn = document.getElementById('upiPayBtn');
+  if (payBtn) {
+    payBtn.addEventListener('click', function (e) {
       var ci = document.getElementById('customAmt');
       if (ci && ci.value) {
         var v = parseInt(ci.value, 10);
-        if (v > 0) { upiAmt = v; refreshUpi(); }
+        if (v > 0) { upiAmt = v; refreshPayBtn(); }
       }
-    }, true); // capture phase — runs before other handlers
+      // Desktop warning
+      if (!/android|iphone|ipad|mobile/i.test(navigator.userAgent)) {
+        e.preventDefault();
+        alert('On desktop: scan the QR code with GPay / PhonePe / Paytm on your phone.');
+      }
+    }, true);
   }
 
   // Copy UPI ID
@@ -102,17 +94,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }).catch(function () { prompt('Copy this UPI ID:', UPI_ID); });
       } else {
         prompt('Copy this UPI ID:', UPI_ID);
-      }
-    });
-  }
-
-  // Pay button: on desktop warn to scan QR instead
-  var payBtn = document.getElementById('upiPayBtn');
-  if (payBtn) {
-    payBtn.addEventListener('click', function (e) {
-      if (!/android|iphone|ipad|mobile/i.test(navigator.userAgent)) {
-        e.preventDefault();
-        alert('On desktop: scan the QR code with GPay / PhonePe / Paytm on your phone.');
       }
     });
   }

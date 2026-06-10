@@ -8,22 +8,62 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
 <style>
-  .donate-wrap { max-width:480px; margin:0 auto; }
-  .donate-card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:32px 28px; text-align:center; box-shadow:0 4px 14px rgba(0,0,0,.05); }
-  .donate-card h3 { color:var(--maroon); margin-bottom:8px; font-size:1.3rem; }
-  .donate-card > p { color:var(--muted); font-size:14px; margin-bottom:20px; }
-  .amount-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:16px; }
-  .amount-row button { padding:9px 18px; border:1px solid var(--gold); background:#fff; border-radius:6px; cursor:pointer; font-weight:600; color:var(--maroon); font-family:inherit; font-size:15px; }
+  .donate-wrap { max-width:520px; margin:0 auto; }
+
+  /* UPI details table card */
+  .upi-details-card {
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:28px 32px; margin-bottom:28px;
+    box-shadow:0 4px 16px rgba(0,0,0,.06);
+  }
+  .upi-details-card h3 {
+    color:var(--maroon); font-size:1.2rem; margin-bottom:18px;
+    text-align:center; padding-bottom:12px; border-bottom:2px solid var(--line);
+  }
+  .upi-table { width:100%; border-collapse:collapse; font-size:15px; }
+  .upi-table tr td { padding:9px 6px; border-bottom:1px dashed var(--line); vertical-align:top; }
+  .upi-table tr:last-child td { border-bottom:none; }
+  .upi-table td:first-child { color:var(--muted); font-weight:600; white-space:nowrap; padding-right:18px; width:40%; }
+  .upi-table td:last-child { color:var(--ink); font-weight:700; word-break:break-all; }
+  .copy-btn { background:none; border:none; cursor:pointer; color:var(--saffron-dark); font-size:13px; text-decoration:underline; padding:0 0 0 8px; font-family:inherit; }
+
+  /* QR card styled like BHIM UPI slip */
+  .qr-slip {
+    background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    box-shadow:0 4px 16px rgba(0,0,0,.07); margin-bottom:24px; text-align:center;
+  }
+  .qr-slip-header {
+    background:linear-gradient(90deg, #ff6600 0%, #ff9900 100%);
+    color:#fff; padding:12px 20px; font-size:15px; font-weight:700; letter-spacing:.5px;
+  }
+  .qr-slip-header span { display:block; font-size:12px; font-weight:400; opacity:.9; margin-top:2px; }
+  .qr-slip-body { padding:20px; }
+  .qr-wrap {
+    margin:0 auto 12px; width:192px; height:192px;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fafafa;
+  }
+  .qr-wrap img { width:172px; height:172px; display:block; }
+  .qr-name { font-size:13px; font-weight:600; color:var(--maroon); margin-bottom:4px; letter-spacing:.3px; text-transform:uppercase; }
+  .bhim-badge {
+    display:inline-flex; align-items:center; gap:6px; margin-top:8px;
+    background:#0a3f8c; color:#fff; padding:5px 14px; border-radius:20px; font-size:13px; font-weight:700;
+  }
+  .bhim-badge::before { content:'🇮🇳'; font-size:14px; }
+
+  /* Amount selector */
+  .amt-section { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px 28px; box-shadow:0 4px 16px rgba(0,0,0,.06); }
+  .amt-section h4 { color:var(--maroon); font-size:1rem; margin-bottom:14px; text-align:center; }
+  .amount-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:14px; }
+  .amount-row button { padding:9px 18px; border:1px solid var(--gold); background:#fff; border-radius:6px; cursor:pointer; font-weight:700; color:var(--maroon); font-family:inherit; font-size:15px; transition:all .15s; }
   .amount-row button.sel { background:var(--saffron); color:#fff; border-color:var(--saffron); }
-  .upi-id { font-size:17px; font-weight:bold; color:var(--maroon); background:var(--cream); padding:10px 14px; border-radius:6px; margin:12px 0; word-break:break-all; letter-spacing:.3px; }
-  .qr-wrap { margin:0 auto 16px; width:180px; height:180px; display:flex; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fafafa; }
-  .qr-wrap img { width:160px; height:160px; display:block; }
-  .hint { color:var(--muted); font-size:12px; margin-top:10px; }
-  .custom-amt-wrap { display:flex; align-items:center; gap:6px; margin:10px 0 14px; }
+  .amount-row button:hover:not(.sel) { background:var(--cream); }
+  .custom-amt-wrap { display:flex; align-items:center; gap:6px; margin:0 0 16px; }
   .rupee-sym { font-size:16px; font-weight:700; color:var(--maroon); }
   .custom-amt-wrap input { flex:1; padding:9px 12px; border:1px solid var(--gold); border-radius:6px; font-size:15px; font-family:inherit; outline:none; }
   .custom-amt-wrap input:focus { border-color:var(--maroon); }
-  .copy-btn { background:none; border:none; cursor:pointer; color:var(--maroon); font-size:13px; text-decoration:underline; padding:0; font-family:inherit; margin-left:6px; }
+
+  .hint { color:var(--muted); font-size:12px; margin-top:10px; text-align:center; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -74,44 +114,70 @@
 <section class="intro">
   <div class="container">
     <div class="section-title">
-      <h2>Make a Contribution</h2>
+      <h2>Donation</h2>
       <p id="donateNote" data-setting="donation_note">Your contribution helps spread the message of devotion. 🙏</p>
     </div>
 
     <div class="donate-wrap">
-      <!-- UPI direct payment -->
-      <div class="donate-card">
-        <h3>📱 Donate via UPI</h3>
-        <p>Scan the QR or tap the button to open GPay / PhonePe / BHIM / Paytm.</p>
 
-        <div class="qr-wrap">
-          <img id="upiQr" alt="UPI QR" width="160" height="160"
-            src="https://quickchart.io/qr?text=upi%3A%2F%2Fpay%3Fpa%3Dmab.037215011050006%2540axisbank%26pn%3DDevi%2520Murlika%2520Gaur%26am%3D251%26cu%3DINR%26tn%3DDonation&size=160&margin=1" />
+      <!-- UPI details -->
+      <div class="upi-details-card">
+        <h3>🏦 UPI Payment Details</h3>
+        <table class="upi-table">
+          <tr>
+            <td>Name</td>
+            <td>Devi Murlika Gaur</td>
+          </tr>
+          <tr>
+            <td>UPI ID</td>
+            <td>
+              <span id="upiIdText">mab.037215011050006@axisbank</span>
+              <button type="button" class="copy-btn" id="copyBtn" title="Copy UPI ID">📋 Copy</button>
+            </td>
+          </tr>
+          <tr>
+            <td>Bank</td>
+            <td>Axis Bank</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- BHIM UPI QR slip — static QR, never changes -->
+      <div class="qr-slip">
+        <div class="qr-slip-header">
+          SCAN AND PAY WITH ANY BHIM UPI
+          <span>Use GPay · PhonePe · Paytm · BHIM or any UPI app</span>
         </div>
-
-        <div class="upi-id" id="upiId">
-          <span id="upiIdText">mab.037215011050006@axisbank</span>
-          <button type="button" class="copy-btn" id="copyBtn" title="Copy UPI ID">📋 Copy</button>
+        <div class="qr-slip-body">
+          <div class="qr-wrap">
+            <!-- Static QR — no amount encoded, so it never needs to change -->
+            <img id="upiQr" alt="UPI QR Code" width="172" height="172"
+              src="https://quickchart.io/qr?text=upi%3A%2F%2Fpay%3Fpa%3Dmab.037215011050006%2540axisbank%26pn%3DDevi%2520Murlika%2520Gaur%26cu%3DINR&size=172&margin=1" />
+          </div>
+          <div class="qr-name">Devi Murlika Gaur</div>
+          <div class="bhim-badge">BHIM UPI</div>
         </div>
+      </div>
 
+      <!-- Amount selector + Pay button -->
+      <div class="amt-section">
+        <h4>Select or enter amount, then tap Pay</h4>
         <div class="amount-row" id="upiAmtRow">
           <button type="button" data-amt="101">₹101</button>
           <button type="button" data-amt="251" class="sel">₹251</button>
           <button type="button" data-amt="501">₹501</button>
           <button type="button" data-amt="1100">₹1100</button>
         </div>
-
         <div class="custom-amt-wrap">
           <span class="rupee-sym">₹</span>
           <input type="number" id="customAmt" placeholder="Enter custom amount" min="1" max="100000" />
         </div>
-
         <a id="upiPayBtn"
           href="upi://pay?pa=mab.037215011050006%40axisbank&pn=Devi%20Murlika%20Gaur&am=251&cu=INR&tn=Donation"
-          class="btn" style="width:100%;display:block;margin-bottom:8px">Pay with UPI app</a>
-
-        <p class="hint">On mobile: opens GPay / PhonePe / BHIM / Paytm directly.<br>On desktop: scan the QR code above.</p>
+          class="btn" style="width:100%;display:block;text-align:center;">💳 Pay with UPI App</a>
+        <p class="hint">On mobile: opens GPay / PhonePe / BHIM / Paytm directly.<br>On desktop: scan the QR code above with your phone.</p>
       </div>
+
     </div>
   </div>
 </section>
