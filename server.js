@@ -39,6 +39,7 @@ app.use(helmet({
         'https://i.ytimg.com', 'https://quickchart.io', 'https://api.qrserver.com'],
       frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.google.com'],
       connectSrc: ["'self'"],
+      scriptSrcAttr: ["'unsafe-inline'"],   // allow onclick/onerror attrs in HTML
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       frameAncestors: ["'self'"]
