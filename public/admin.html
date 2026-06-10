@@ -303,6 +303,39 @@
 .toast.err { background: #c0563c; }
 .toast.info { background: var(--maroon); }
 
+/* ── Undo delete bar ── */
+.undo-bar {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%) translateY(140px);
+  background: #1a1a1a; color: #fff; border-radius: 10px;
+  padding: 14px 20px; display: flex; align-items: center; gap: 14px;
+  min-width: 320px; max-width: 92vw; z-index: 10000;
+  box-shadow: 0 10px 40px rgba(0,0,0,.45);
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  overflow: hidden;
+}
+.undo-bar.show { transform: translateX(-50%) translateY(0); }
+.undo-bar-msg { flex: 1; font-size: 14px; font-weight: 600; }
+.undo-bar-msg small { display: block; font-size: 11px; font-weight: 400; opacity: .65; margin-top: 2px; }
+.undo-btn {
+  background: var(--saffron); color: #fff; border: none;
+  padding: 7px 18px; border-radius: 6px; font-weight: 800;
+  font-size: 13px; cursor: pointer; white-space: nowrap;
+  font-family: 'Rosario', sans-serif; letter-spacing: .4px;
+  transition: background .15s; flex-shrink: 0;
+}
+.undo-btn:hover { background: var(--saffron-dark); }
+.undo-secs {
+  font-size: 13px; color: rgba(255,255,255,.5);
+  font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 20px;
+}
+.undo-progress {
+  position: absolute; bottom: 0; left: 0; height: 3px;
+  background: var(--saffron); width: 100%;
+}
+.undo-bar.show .undo-progress { animation: undoCountdown 5s linear forwards; }
+@keyframes undoCountdown { from { width: 100%; } to { width: 0%; } }
+
 /* ── Responsive ── */
 @media (max-width: 1000px) {
   .admin-blog-grid { grid-template-columns: repeat(2, 1fr); }
@@ -649,6 +682,17 @@
 
 <!-- Toast notification -->
 <div class="toast" id="toast"></div>
+
+<!-- Undo delete bar -->
+<div class="undo-bar" id="undoBar">
+  <div class="undo-bar-msg">
+    <span id="undoMsg">Item deleted</span>
+    <small id="undoSub"></small>
+  </div>
+  <button class="undo-btn" id="undoBtn">↩ Undo</button>
+  <span class="undo-secs"><span id="undoSecs">5</span>s</span>
+  <div class="undo-progress" id="undoProgress"></div>
+</div>
 
 <footer>
   <div class="container">

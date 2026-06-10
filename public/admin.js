@@ -36,6 +36,70 @@ function toast(msg, type = 'ok') {
   _tt = setTimeout(() => el.classList.remove('show'), 3200);
 }
 
+/* ── Undo delete system ──────────────────────── */
+let _undo = null; // { timerId, countId }
+
+function delWithUndo(label, sub, executeFn) {
+  // Commit any already-pending delete before starting new one
+  if (_undo) {
+    clearTimeout(_undo.timerId);
+    clearInterval(_undo.countId);
+    hideUndoBar();
+    _undo.executeFn();
+    _undo = null;
+  }
+
+  let secs = 5;
+  const bar = $('undoBar');
+  const msg = $('undoMsg');
+  const subEl = $('undoSub');
+  const secsEl = $('undoSecs');
+
+  if (msg) msg.textContent = label;
+  if (subEl) subEl.textContent = sub || '';
+  if (secsEl) secsEl.textContent = secs;
+
+  // Reset + restart animation by forcing reflow
+  if (bar) {
+    bar.classList.remove('show');
+    void bar.offsetWidth; // reflow
+    bar.classList.add('show');
+  }
+
+  const countId = setInterval(() => {
+    secs--;
+    if (secsEl) secsEl.textContent = Math.max(0, secs);
+    if (secs <= 0) clearInterval(countId);
+  }, 1000);
+
+  const timerId = setTimeout(async () => {
+    clearInterval(countId);
+    hideUndoBar();
+    _undo = null;
+    await executeFn();
+  }, 5000);
+
+  _undo = { timerId, countId, executeFn };
+}
+
+function hideUndoBar() {
+  const bar = $('undoBar');
+  if (bar) bar.classList.remove('show');
+}
+
+// Wire undo button
+const _undoBtnEl = $('undoBtn');
+if (_undoBtnEl) {
+  _undoBtnEl.addEventListener('click', () => {
+    if (!_undo) return;
+    clearTimeout(_undo.timerId);
+    clearInterval(_undo.countId);
+    hideUndoBar();
+    _undo = null;
+    toast('Deletion cancelled ✓', 'info');
+  });
+}
+
 /* ── Tabs ────────────────────────────────────── */
 const TABS = ['dashboard', 'messages', 'events', 'posts', 'gallery', 'videos', 'press', 'donations', 'settings'];
 
@@ -181,13 +245,14 @@ async function loadMessages() {
 }
 
 async function delMsg(id) {
-  if (!confirm('Delete this message?')) return;
-  try {
-    await api('/api/admin/messages/' + id, { method: 'DELETE' });
-    toast('Message deleted');
-    await loadMessages();
-    buildCharts();
-  } catch (e) { toast(e.message, 'err'); }
+  const item = msgMap[id];
+  delWithUndo('💬 Message deleted', item ? `From: ${item.name}` : '', async () => {
+    try {
+      await api('/api/admin/messages/' + id, { method: 'DELETE' });
+      await loadMessages();
+      buildCharts();
+    } catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 /* ══════════════════════════════════════════════
@@ -277,13 +342,14 @@ async function saveEvent() {
 }
 
 async function delEvent(id) {
-  if (!confirm('Delete this event?')) return;
-  try {
-    await api('/api/admin/events/' + id, { method: 'DELETE' });
-    toast('Event deleted');
-    await loadEvents();
-    buildCharts();
-  } catch (e) { toast(e.message, 'err'); }
+  const item = evtMap[id];
+  delWithUndo('📅 Event deleted', item ? `${item.day || ''} ${item.month || ''} — ${item.title}` : '', async () => {
+    try {
+      await api('/api/admin/events/' + id, { method: 'DELETE' });
+      await loadEvents();
+      buildCharts();
+    } catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 /* ══════════════════════════════════════════════
@@ -366,13 +432,14 @@ async function savePost() {
 }
 
 async function delPost(id) {
-  if (!confirm('Delete this post?')) return;
-  try {
-    await api('/api/admin/posts/' + id, { method: 'DELETE' });
-    toast('Post deleted');
-    await loadPosts();
-    buildCharts();
-  } catch (e) { toast(e.message, 'err'); }
+  const item = postMap[id];
+  delWithUndo('✍️ Post deleted', item ? item.title : '', async () => {
+    try {
+      await api('/api/admin/posts/' + id, { method: 'DELETE' });
+      await loadPosts();
+      buildCharts();
+    } catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 /* ══════════════════════════════════════════════
@@ -458,13 +525,14 @@ async function saveGallery() {
 }
 
 async function delGallery(id) {
-  if (!confirm('Delete this image?')) return;
-  try {
-    await api('/api/admin/gallery/' + id, { method: 'DELETE' });
-    toast('Image deleted');
-    await loadGallery();
-    buildCharts();
-  } catch (e) { toast(e.message, 'err'); }
+  const item = galMap[id];
+  delWithUndo('🖼️ Image deleted', item ? (item.caption || item.image?.split('/').pop() || '') : '', async () => {
+    try {
+      await api('/api/admin/gallery/' + id, { method: 'DELETE' });
+      await loadGallery();
+      buildCharts();
+    } catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 // File upload from device
@@ -583,12 +651,13 @@ async function saveVideo() {
 }
 
 async function delVideo(id) {
-  if (!confirm('Delete this video?')) return;
-  try {
-    await api('/api/admin/videos/' + id, { method: 'DELETE' });
-    toast('Video deleted');
-    await loadVideos();
-  } catch (e) { toast(e.message, 'err'); }
+  const item = videoMap[id];
+  delWithUndo('🎬 Video deleted', item ? item.title : '', async () => {
+    try {
+      await api('/api/admin/videos/' + id, { method: 'DELETE' });
+      await loadVideos();
+    } catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 /* ══════════════════════════════════════════════
@@ -687,12 +756,13 @@ async function savePress() {
 }
 
 async function delPress(id) {
-  if (!confirm('Delete this article?')) return;
-  try {
-    await api('/api/admin/press/' + id, { method: 'DELETE' });
-    toast('Article deleted');
-    await loadPress();
-  } catch (e) { toast(e.message, 'err'); }
+  const item = pressMap[id];
+  delWithUndo('📰 Article deleted', item ? item.title : '', async () => {
+    try {
+      await api('/api/admin/press/' + id, { method: 'DELETE' });
+      await loadPress();
+    } catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 /* ══════════════════════════════════════════════
