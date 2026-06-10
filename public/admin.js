@@ -502,7 +502,101 @@ async function delGallery(id) {
   });
 }
 
-// File upload from device
+/* ── Bulk Gallery Upload ── */
+let bulkFiles = [];
+const gBulkEl = $('gBulkFiles');
+if (gBulkEl) {
+  gBulkEl.addEventListener('change', function () {
+    bulkFiles = Array.from(this.files).slice(0, 20);
+    const preview = $('bulkPreview');
+    const thumbGrid = $('bulkThumbGrid');
+    const countEl = $('bulkCount');
+    if (!bulkFiles.length) { if (preview) preview.style.display = 'none'; return; }
+    if (preview) preview.style.display = '';
+    if (countEl) countEl.textContent = bulkFiles.length + ' image' + (bulkFiles.length > 1 ? 's' : '') + ' selected';
+    if (thumbGrid) {
+      thumbGrid.innerHTML = '';
+      bulkFiles.forEach((f, i) => {
+        const url = URL.createObjectURL(f);
+        thumbGrid.innerHTML += `<div style="position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--line)">
+          <img src="${url}" style="width:100%;height:100%;object-fit:cover" />
+          <span style="position:absolute;top:2px;left:4px;font-size:10px;background:rgba(0,0,0,.6);color:#fff;padding:1px 5px;border-radius:3px">${i + 1}</span>
+        </div>`;
+      });
+    }
+  });
+}
+
+function clearBulkUpload() {
+  bulkFiles = [];
+  const bf = $('gBulkFiles'); if (bf) bf.value = '';
+  const bp = $('bulkPreview'); if (bp) bp.style.display = 'none';
+  const bg = $('bulkThumbGrid'); if (bg) bg.innerHTML = '';
+  const pr = $('bulkProgress'); if (pr) pr.style.display = 'none';
+}
+
+async function doBulkUpload() {
+  if (!bulkFiles.length) { toast('Select images first', 'err'); return; }
+  const caption = ($('gBulkCaption') || {}).value || '';
+  const progressEl = $('bulkProgress');
+  const barEl = $('bulkBar');
+  const statusEl = $('bulkStatus');
+  const btn = $('bulkUploadBtn');
+  if (progressEl) progressEl.style.display = '';
+  if (btn) btn.disabled = true;
+
+  let uploaded = 0;
+  let failed = 0;
+  const total = bulkFiles.length;
+
+  function updateProgress() {
+    const pct = Math.round(((uploaded + failed) / total) * 100);
+    if (barEl) barEl.style.width = pct + '%';
+    if (statusEl) statusEl.textContent = `Uploaded ${uploaded}/${total}` + (failed ? ` (${failed} failed)` : '') + '…';
+  }
+
+  // Upload in batches of 5 for speed
+  for (let i = 0; i < total; i += 5) {
+    const batch = bulkFiles.slice(i, i + 5);
+    await Promise.all(batch.map(async (file) => {
+      const fd = new FormData();
+      fd.append('image', file);
+      try {
+        const res = await fetch(API_BASE + '/api/admin/upload', {
+          method: 'POST', credentials: 'include',
+          headers: { 'X-Requested-With': 'fetch' }, body: fd
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        // Save to gallery DB
+        await api('/api/admin/gallery', {
+          method: 'POST',
+          body: JSON.stringify({ image: data.url, caption, sort_order: 0 })
+        });
+        uploaded++;
+      } catch (e) {
+        failed++;
+        console.error('Bulk upload error:', file.name, e.message);
+      }
+      updateProgress();
+    }));
+  }
+
+  if (btn) btn.disabled = false;
+  if (statusEl) statusEl.textContent = `Done! ${uploaded} uploaded` + (failed ? `, ${failed} failed` : '');
+  toast(`${uploaded} image${uploaded !== 1 ? 's' : ''} added to gallery` + (failed ? ` (${failed} failed)` : '') + ' ✓');
+
+  await loadGallery();
+  buildCharts();
+
+  // Auto-clear after 2s
+  setTimeout(() => {
+    clearBulkUpload();
+    cancelForm('galBulk');
+  }, 2000);
+}
+
+// Single file upload from device
 const gFileEl = $('gFile');
 if (gFileEl) {
   gFileEl.addEventListener('change', async function () {

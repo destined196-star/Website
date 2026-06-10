@@ -437,7 +437,37 @@
   <div class="admin-section" id="s-gallery">
     <div class="a-tab-header">
       <h2>🖼️ Gallery</h2>
-      <button class="btn-add" onclick="toggleForm('galForm')">+ Add / Upload Photo</button>
+      <button class="btn-add" onclick="toggleForm('galBulk')">📤 Bulk Upload (up to 20)</button>
+      <button class="btn-add" onclick="toggleForm('galForm')">+ Add Single Photo</button>
+    </div>
+
+    <div class="a-form-panel" id="galBulk" style="display:none">
+      <h3>📤 Bulk Upload — Select up to 20 Images</h3>
+      <div class="upload-zone" id="bulkUploadZone" onclick="document.getElementById('gBulkFiles').click()">
+        <input type="file" id="gBulkFiles" accept="image/jpeg,image/png,image/webp,image/gif" multiple />
+        <span class="uz-icon">📷📷📷</span>
+        <p class="uz-text">Click to select multiple photos from your device<br>
+          <small>JPG · PNG · WebP · GIF &nbsp;|&nbsp; Max 5 MB each &nbsp;|&nbsp; Up to 20 at once</small>
+        </p>
+      </div>
+      <div id="bulkPreview" style="display:none;margin-top:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <strong id="bulkCount">0 images selected</strong>
+          <button class="btn-clear" onclick="clearBulkUpload()">✕ Clear</button>
+        </div>
+        <div id="bulkThumbGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:14px"></div>
+        <div class="f-field" style="max-width:400px;margin-bottom:14px">
+          <label>Default caption for all (optional)</label>
+          <input id="gBulkCaption" placeholder="e.g. Satsang Photos 2025" />
+        </div>
+        <div id="bulkProgress" style="display:none;margin-bottom:14px">
+          <div style="background:var(--line);border-radius:6px;overflow:hidden;height:8px">
+            <div id="bulkBar" style="height:100%;background:var(--saffron);width:0%;transition:width .3s"></div>
+          </div>
+          <small id="bulkStatus" style="color:var(--muted)">Uploading…</small>
+        </div>
+        <button class="btn-save" id="bulkUploadBtn" onclick="doBulkUpload()">📤 Upload All</button>
+      </div>
     </div>
 
     <div class="a-form-panel" id="galForm" style="display:none">

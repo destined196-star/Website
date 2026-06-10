@@ -506,6 +506,27 @@ app.post('/api/admin/upload', requireAuth, (req, res) => {
   });
 });
 
+// Bulk upload — up to 20 images at once
+const uploadBulk = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => {
+      const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' }[file.mimetype] || '';
+      cb(null, crypto.randomBytes(12).toString('hex') + ext);
+    }
+  }),
+  limits: { fileSize: 5 * 1024 * 1024, files: 20 },
+  fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
+});
+app.post('/api/admin/upload-bulk', requireAuth, (req, res) => {
+  uploadBulk.array('images', 20)(req, res, err => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.files || !req.files.length) return res.status(400).json({ error: 'No valid images received' });
+    const urls = req.files.map(f => '/uploads/' + f.filename);
+    res.json({ ok: true, urls });
+  });
+});
+
 // Recent login attempts (audit trail)
 app.get('/api/admin/audit', requireAuth, (req, res) => {
   res.json(db.prepare('SELECT username,ip,success,reason,created_at FROM login_audit ORDER BY id DESC LIMIT 50').all());
