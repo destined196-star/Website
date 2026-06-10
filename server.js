@@ -116,11 +116,8 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER) {
   console.log('[mail] no SMTP env — messages stored in DB only');
 }
 
-// ---- Auth middleware ----
-function requireAuth(req, res, next) {
-  if (req.session?.admin) return next();
-  res.status(401).json({ error: 'unauthorized' });
-}
+// ---- Auth middleware (disabled: open admin) ----
+function requireAuth(req, res, next) { return next(); }
 
 // ================= PUBLIC API =================
 

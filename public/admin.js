@@ -5,60 +5,20 @@ const api = (url, opts = {}) => fetch(API_BASE + url, {
   headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' }, credentials: 'include', ...opts
 }).then(async r => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || r.status); return d; });
 
-// ---- Auth ----
-async function checkAuth() {
-  const me = await api('/api/me');
-  if (me.admin) { showDash(me.admin.username, me.must_setup_2fa); }
-  else { $('loginView').classList.remove('hidden'); $('dashView').classList.add('hidden'); }
-}
-function showDash(name, mustSetup2fa) {
+// ---- Auth (disabled: open admin) ----
+function showDash(name) {
   $('loginView').classList.add('hidden');
   $('dashView').classList.remove('hidden');
-  $('who').textContent = name;
-  loadMessages(); loadEvents(); loadPosts(); loadGallery(); loadDonations(); loadSettings(); loadSecurity();
-  startIdleTimer();
-  if (mustSetup2fa) {
-    // Mandatory 2FA: lock the admin to the Security tab until 2FA is enabled.
-    document.querySelectorAll('.tabs button').forEach(b => { if (b.dataset.tab !== 'security') b.style.display = 'none'; });
-    tab('security');
-    const m = $('twofaMsg'); m.className = 'msg err'; m.textContent = '🔒 2FA is required. Set it up below to unlock the admin panel.'; m.classList.remove('hidden');
-  } else {
-    document.querySelectorAll('.tabs button').forEach(b => { b.style.display = ''; });
-  }
+  if ($('who')) $('who').textContent = name || 'Admin';
+  loadMessages(); loadEvents(); loadPosts(); loadGallery(); loadDonations(); loadSettings();
 }
 
-// ---- Idle auto-logout (matches server 30-min session) ----
-let idleTimer;
-function startIdleTimer() {
-  const reset = () => { clearTimeout(idleTimer); idleTimer = setTimeout(() => { alert('Logged out due to inactivity.'); logout(); }, 30 * 60 * 1000); };
-  ['click', 'keydown', 'mousemove', 'scroll'].forEach(ev => document.addEventListener(ev, reset, { passive: true }));
-  reset();
-}
-async function login() {
-  const el = $('loginErr');
-  try {
-    const body = { username: $('lUser').value, password: $('lPass').value };
-    const tok = $('lToken').value.trim();
-    if (tok) body.token = tok;
-    const d = await api('/api/login', { method: 'POST', body: JSON.stringify(body) });
-    showDash(d.username);
-  } catch (e) {
-    if (e.message === '2fa_required') {
-      $('l2faWrap').classList.remove('hidden');
-      el.textContent = 'Enter your 6-digit authenticator code.';
-      el.classList.remove('hidden');
-      $('lToken').focus();
-      return;
-    }
-    el.textContent = e.message; el.classList.remove('hidden');
-  }
-}
-async function logout() { await api('/api/logout', { method: 'POST' }); location.reload(); }
+async function logout() { location.href = 'index.html'; }
 
 // ---- Tabs ----
 function tab(name) {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  ['messages', 'events', 'posts', 'gallery', 'donations', 'settings', 'security', 'password'].forEach(t => $('t-' + t).classList.toggle('hidden', t !== name));
+  ['messages', 'events', 'posts', 'gallery', 'donations', 'settings'].forEach(t => $('t-' + t).classList.toggle('hidden', t !== name));
 }
 
 // ---- Messages ----
@@ -192,41 +152,7 @@ async function changePw() {
   } catch (e) { el.className = 'msg err'; el.textContent = e.message; }
 }
 
-// ---- Security: 2FA + login audit ----
-async function loadSecurity() {
-  const me = await api('/api/me');
-  const on = !!me.totp_enabled;
-  $('twofaOn').classList.toggle('hidden', !on);
-  $('twofaOff').classList.toggle('hidden', on);
-  $('twofaSetup').classList.add('hidden');
-  loadAudit();
-}
-async function setup2fa() {
-  const d = await api('/api/admin/2fa/setup', { method: 'POST' });
-  $('twofaQr').src = d.qr;
-  $('twofaSecret').textContent = d.secret;
-  $('twofaSetup').classList.remove('hidden');
-}
-async function enable2fa() {
-  const el = $('twofaMsg');
-  try {
-    await api('/api/admin/2fa/enable', { method: 'POST', body: JSON.stringify({ token: $('twofaToken').value }) });
-    el.className = 'msg ok'; el.textContent = '2FA enabled. You will need your code at next login.'; el.classList.remove('hidden');
-    loadSecurity();
-  } catch (e) { el.className = 'msg err'; el.textContent = e.message; el.classList.remove('hidden'); }
-}
-async function disable2fa() {
-  const el = $('twofaMsg');
-  try {
-    await api('/api/admin/2fa/disable', { method: 'PUT', body: JSON.stringify({ password: $('twofaDisablePw').value }) });
-    el.className = 'msg ok'; el.textContent = '2FA disabled.'; el.classList.remove('hidden');
-    $('twofaDisablePw').value = ''; loadSecurity();
-  } catch (e) { el.className = 'msg err'; el.textContent = e.message; el.classList.remove('hidden'); }
-}
-function downloadBackup() {
-  // GET with the session cookie; browser saves the .db file
-  window.location = API_BASE + '/api/admin/backup';
-}
+function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
 async function uploadImage() {
   const f = $('gFile').files[0];
   if (!f) return;
@@ -246,15 +172,8 @@ async function uploadImage() {
     msg.textContent = '✅ Uploaded. Click "Add / Save Image" to publish.';
   } catch (e) { msg.textContent = '❌ ' + e.message; }
 }
-async function loadAudit() {
-  const list = await api('/api/admin/audit');
-  $('auditList').innerHTML = list.length ? list.map(a => `
-    <div class="item" style="border-left:4px solid ${a.success ? '#3a7a2a' : '#c0563c'}">
-      <div class="meta">${a.success ? '✅ success' : '❌ failed'} ${a.reason ? '(' + esc(a.reason) + ')' : ''}
-      · user: <b>${esc(a.username) || '-'}</b> · IP: ${esc(a.ip)} · ${esc(a.created_at)}</div>
-    </div>`).join('') : '<p class="meta">No login attempts logged yet.</p>';
-}
 
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-checkAuth();
+// Open admin — skip login, go straight to dashboard
+showDash('Admin');
