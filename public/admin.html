@@ -588,19 +588,6 @@
       </div>
 
       <div class="a-panel">
-        <h3>💰 Donation Settings</h3>
-        <div class="f-field"><label>UPI ID</label><input id="s_upi_id" placeholder="example@upi" /></div>
-        <div class="f-field"><label>PayPal link</label><input id="s_paypal_link" placeholder="https://paypal.me/..." /></div>
-        <div class="f-field"><label>Donation note (shown on Donate page)</label><textarea id="s_donation_note" rows="3"></textarea></div>
-        <h3 style="margin-top:18px;">🏦 Bank Transfer Details</h3>
-        <div class="f-field"><label>Bank Name</label><input id="s_bank_name" placeholder="e.g. Axis Bank" /></div>
-        <div class="f-field"><label>Account Holder Name</label><input id="s_bank_account_name" placeholder="e.g. Devi Murlika Gaur" /></div>
-        <div class="f-field"><label>Account Number</label><input id="s_bank_account_number" placeholder="e.g. 037215011050006" /></div>
-        <div class="f-field"><label>IFSC Code</label><input id="s_bank_ifsc" placeholder="e.g. UTIB0000372" /></div>
-        <div class="f-field"><label>Branch</label><input id="s_bank_branch" placeholder="e.g. Vrindavan Branch" /></div>
-      </div>
-
-      <div class="a-panel">
         <h3>💾 Data</h3>
         <p style="color:var(--muted);font-size:14px;margin-bottom:16px">
           Download a full backup of all site data (messages, gallery, events, posts, donations, settings).
@@ -608,6 +595,44 @@
         <button class="btn-save" onclick="downloadBackup()">⬇ Download DB Backup</button>
       </div>
 
+    </div>
+
+    <!-- Payment & Donation Settings — full width below grid -->
+    <div class="a-panel" style="margin-top:20px;">
+      <h3>💰 Donation &amp; Payment Settings</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Fill any section below. Only filled payment methods appear on the Donate page for visitors.</p>
+
+      <div class="settings-grid">
+        <div>
+          <h4 style="color:var(--maroon);margin-bottom:10px">📱 UPI Payment</h4>
+          <div class="f-field"><label>UPI ID</label><input id="s_upi_id" placeholder="example@upi or number@bank" /></div>
+          <div class="f-field"><label>UPI Holder Name</label><input id="s_upi_name" placeholder="e.g. Devi Murlika Gaur" /></div>
+          <div class="f-field"><label>Donation Note (shown on Donate page)</label><textarea id="s_donation_note" rows="2"></textarea></div>
+        </div>
+        <div>
+          <h4 style="color:var(--maroon);margin-bottom:10px">🏦 Bank Transfer (NEFT / IMPS)</h4>
+          <div class="f-field"><label>Bank Name</label><input id="s_bank_name" placeholder="e.g. Axis Bank" /></div>
+          <div class="f-field"><label>Account Holder Name</label><input id="s_bank_account_name" placeholder="e.g. Devi Murlika Gaur" /></div>
+          <div class="f-field"><label>Account Number</label><input id="s_bank_account_number" placeholder="e.g. 037215011050006" /></div>
+          <div class="f-field"><label>IFSC Code</label><input id="s_bank_ifsc" placeholder="e.g. UTIB0000372" /></div>
+          <div class="f-field"><label>Branch</label><input id="s_bank_branch" placeholder="e.g. Vrindavan Branch" /></div>
+        </div>
+      </div>
+
+      <div class="settings-grid" style="margin-top:16px">
+        <div>
+          <h4 style="color:var(--maroon);margin-bottom:10px">🌐 Online Payment Links</h4>
+          <div class="f-field"><label>PayPal Link</label><input id="s_paypal_link" placeholder="https://paypal.me/yourname" /></div>
+          <div class="f-field"><label>Razorpay Link</label><input id="s_razorpay_link" placeholder="https://razorpay.me/yourname" /></div>
+          <div class="f-field"><label>Google Pay (GPay) Number</label><input id="s_gpay_number" placeholder="+91 98765 43210" /></div>
+          <div class="f-field"><label>PhonePe Number</label><input id="s_phonepe_number" placeholder="+91 98765 43210" /></div>
+          <div class="f-field"><label>Paytm Number</label><input id="s_paytm_number" placeholder="+91 98765 43210" /></div>
+        </div>
+        <div>
+          <h4 style="color:var(--maroon);margin-bottom:10px">🔗 Other / Custom</h4>
+          <div class="f-field"><label>Any other payment link or instructions</label><textarea id="s_other_payment" rows="4" placeholder="e.g. Zelle, Wire transfer details, or any custom instructions…"></textarea></div>
+        </div>
+      </div>
     </div>
 
     <div style="margin-top:8px">

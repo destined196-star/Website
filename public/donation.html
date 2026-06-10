@@ -64,6 +64,19 @@
   .custom-amt-wrap input:focus { border-color:var(--maroon); }
 
   .hint { color:var(--muted); font-size:12px; margin-top:10px; text-align:center; line-height:1.6; }
+
+  /* Payment method cards */
+  .pay-card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:24px 28px; margin-bottom:20px; box-shadow:0 4px 16px rgba(0,0,0,.06); }
+  .pay-card h3 { color:var(--maroon); font-size:1.1rem; margin-bottom:14px; text-align:center; padding-bottom:10px; border-bottom:2px solid var(--line); }
+  .pay-link-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px dashed var(--line); }
+  .pay-link-row:last-child { border-bottom:none; }
+  .pay-link-row .pay-icon { font-size:22px; width:36px; text-align:center; flex-shrink:0; }
+  .pay-link-row .pay-info { flex:1; }
+  .pay-link-row .pay-label { font-size:13px; color:var(--muted); display:block; }
+  .pay-link-row .pay-value { font-size:15px; font-weight:700; color:var(--ink); word-break:break-all; }
+  .pay-link-row a.pay-value { color:var(--maroon); text-decoration:none; }
+  .pay-link-row a.pay-value:hover { text-decoration:underline; }
+  .no-methods { text-align:center; padding:40px 20px; color:var(--muted); font-size:15px; }
 </style>
 </head>
 <body>
@@ -122,73 +135,9 @@
 
     <div class="donate-wrap">
 
-      <!-- UPI details -->
-      <div class="upi-details-card">
-        <h3>🏦 UPI Payment Details</h3>
-        <table class="upi-table">
-          <tr>
-            <td>Name</td>
-            <td>Devi Murlika Gaur</td>
-          </tr>
-          <tr>
-            <td>UPI ID</td>
-            <td>
-              <span id="upiIdText">mab.037215011050006@axisbank</span>
-              <button type="button" class="copy-btn" id="copyBtn" title="Copy UPI ID">📋 Copy</button>
-            </td>
-          </tr>
-          <tr>
-            <td>Bank</td>
-            <td>Axis Bank</td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- BHIM UPI QR slip — static QR, never changes -->
-      <div class="qr-slip">
-        <div class="qr-slip-header">
-          SCAN AND PAY WITH ANY BHIM UPI
-          <span>Use GPay · PhonePe · Paytm · BHIM or any UPI app</span>
-        </div>
-        <div class="qr-slip-body">
-          <div class="qr-wrap">
-            <!-- Static QR — no amount encoded, so it never needs to change -->
-            <img id="upiQr" alt="UPI QR Code" width="172" height="172"
-              src="https://quickchart.io/qr?text=upi%3A%2F%2Fpay%3Fpa%3Dmab.037215011050006%2540axisbank%26pn%3DDevi%2520Murlika%2520Gaur%26cu%3DINR&size=172&margin=1" />
-          </div>
-          <div class="qr-name">Devi Murlika Gaur</div>
-          <div class="bhim-badge">BHIM UPI</div>
-        </div>
-      </div>
-
-      <!-- Bank Transfer Details -->
-      <div class="upi-details-card" id="bankSection" style="display:none">
-        <h3>🏦 Bank Transfer (NEFT / IMPS)</h3>
-        <table class="upi-table">
-          <tr><td>Account Name</td><td id="bankAccName"></td></tr>
-          <tr><td>Account No.</td><td id="bankAccNum"></td></tr>
-          <tr><td>IFSC Code</td><td id="bankIfsc"></td></tr>
-          <tr><td>Bank</td><td id="bankName"></td></tr>
-          <tr id="bankBranchRow"><td>Branch</td><td id="bankBranch"></td></tr>
-        </table>
-      </div>
-
-      <!-- Amount selector + Pay button -->
-      <div class="amt-section">
-        <h4>Select or enter amount, then tap Pay</h4>
-        <div class="amount-row" id="upiAmtRow">
-          <button type="button" data-amt="101">₹101</button>
-          <button type="button" data-amt="251" class="sel">₹251</button>
-          <button type="button" data-amt="501">₹501</button>
-          <button type="button" data-amt="1100">₹1100</button>
-        </div>
-        <div class="custom-amt-wrap">
-          <span class="rupee-sym">₹</span>
-          <input type="number" id="customAmt" placeholder="Enter custom amount" min="1" max="100000" />
-        </div>
-        <a id="upiPayBtn"
-          href="upi://pay?pa=mab.037215011050006%40axisbank&pn=Devi%20Murlika%20Gaur&am=251&cu=INR&tn=Donation"
-          class="btn" style="width:100%;display:block;text-align:center;">💳 Pay with UPI App</a>
+      <!-- All payment sections rendered dynamically by donation.js -->
+      <div id="paymentMethods">
+        <p style="color:var(--muted);text-align:center">Loading payment options…</p>
       </div>
 
     </div>
