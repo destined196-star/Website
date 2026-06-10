@@ -1,13 +1,18 @@
-name: Build and deploy Node.js app to Azure Web App - devi-murlika-gaur
+name: CI → Deploy → Health check
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+# ────────────────────────────────────────────────
+# JOB 1: checks  (syntax + smoke — runs on EVERY push/PR)
+# ────────────────────────────────────────────────
 jobs:
-  build:
+  check:
+    name: Syntax & smoke checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -15,34 +20,48 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js version
-        uses: actions/setup-node@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          cache: 'npm'
 
-      - name: Upload artifact for deployment job
+      - name: Install dependencies
+        run: npm ci --ignore-scripts   # skip native rebuild — we only need JS checks
+
+      - name: Syntax check (server.js + db.js)
+        run: npm run lint
+
+      - name: Smoke checks
+        run: node scripts/smoke-test.mjs
+
+      - name: Upload artifact for deploy
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: .
-          # Exclude node_modules — Azure will run npm install --build-from-source
-          # via deploy.sh so better-sqlite3 compiles for the actual Linux runtime
           exclude-hidden-files: false
 
+# ────────────────────────────────────────────────
+# JOB 2: deploy  (only on push to main, only if check passed)
+# ────────────────────────────────────────────────
   deploy:
+    name: Deploy to Azure
     runs-on: ubuntu-latest
-    needs: build
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     permissions:
       id-token: write
       contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: node-app
 
-      - name: Remove node_modules (Azure builds natively via deploy.sh)
+      - name: Remove node_modules (Azure builds natively)
         run: rm -rf node_modules
 
       - name: Login to Azure
@@ -52,21 +71,62 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B15966249E9242F1836391977943A813 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2B0599AD08E641FAB9E3592BEE43D283 }}
 
-      - name: Enable and start Azure Web App
+      - name: Enable + start Azure Web App
         run: |
           az webapp update --name devi-murlika-gaur --resource-group devi-murlika-rg --set enabled=true
-          az webapp start --name devi-murlika-gaur --resource-group devi-murlika-rg
+          az webapp start  --name devi-murlika-gaur --resource-group devi-murlika-rg
 
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
+        id: deploy
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'devi-murlika-gaur'
           slot-name: 'Production'
           package: .
 
-      - name: Ensure app is started after deploy
-        if: always()
+      - name: Ensure app is started post-deploy
         run: |
           az webapp update --name devi-murlika-gaur --resource-group devi-murlika-rg --set enabled=true
-          az webapp start --name devi-murlika-gaur --resource-group devi-murlika-rg
+          az webapp start  --name devi-murlika-gaur --resource-group devi-murlika-rg
+
+# ────────────────────────────────────────────────
+# JOB 3: health-check  (pings /healthz after deploy; fails loudly on error)
+# ────────────────────────────────────────────────
+  health-check:
+    name: Post-deploy health check
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Wait for app to warm up
+        run: sleep 30
+
+      - name: Ping /healthz (retry up to 8×, 15 s apart)
+        run: |
+          URL="https://devi-murlika-gaur-f3fwhfetbretezgm.centralindia-01.azurewebsites.net/healthz"
+          for i in $(seq 1 8); do
+            echo "Attempt $i/8 …"
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅  /healthz returned 200 — deploy is healthy"
+              exit 0
+            fi
+            echo "  → got HTTP $STATUS, waiting 15 s …"
+            sleep 15
+          done
+          echo "❌  /healthz never returned 200 after 2 minutes — investigate!"
+          exit 1
+
+      - name: Check homepage loads
+        run: |
+          URL="https://devi-murlika-gaur-f3fwhfetbretezgm.centralindia-01.azurewebsites.net/"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$URL" || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "✅  Homepage returned 200"
+          else
+            echo "⚠️  Homepage returned HTTP $STATUS"
+            exit 1
+          fi
