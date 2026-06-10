@@ -189,17 +189,10 @@ if (db.prepare('SELECT COUNT(*) c FROM press_articles').get().c === 0) {
   ins.run('पट खुलते — Spiritual Programme Report', 'Nav Bharat Times', 'Nov 2021', 'The sacred programme "Patt Khulte" organized under the guidance of Devi Murlika Gaur Ji was a deeply moving spiritual event. The ceremony brought together devotees for prayers, bhajans and an enlightening discourse on the importance of devotion in daily life.', '/images/press-4.jpg', 4);
 }
 
-// Replace placeholder/malformed gallery images with real YouTube thumbnails
+// Clean up any placeholder gallery images (picsum, broken URLs)
 const galBad = db.prepare("SELECT COUNT(*) c FROM gallery WHERE image LIKE '%picsum%' OR image LIKE '% %' OR image=''").get().c;
-if (galBad > 0 || db.prepare('SELECT COUNT(*) c FROM gallery').get().c === 0) {
-  db.prepare('DELETE FROM gallery').run();
-  const ytIns = db.prepare('INSERT INTO gallery (image,caption,sort_order) VALUES (?,?,?)');
-  const ytVids = [
-    ['0XgFXsRFWS4',''],['5lzHTKRmH2Y',''],['7zw6DCsVWQk',''],['8NmqWj8ySKc',''],
-    ['8fWlrpcbqyU',''],['AhANlTzF__s',''],['Aky615YKsJ8',''],['DiKizDW_Tbk',''],
-    ['FYGLo650Zbw',''],['N_tzLSrzAkQ',''],['SIKSk-LHn00',''],['SZ0NtF4HoJ8','']
-  ];
-  ytVids.forEach(([id, cap], i) => ytIns.run(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, `https://www.youtube.com/watch?v=${id}`, i + 1));
+if (galBad > 0) {
+  db.prepare("DELETE FROM gallery WHERE image LIKE '%picsum%' OR image LIKE '% %' OR image=''").run();
 }
 
 export default db;
