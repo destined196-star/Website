@@ -495,13 +495,13 @@ const upload = multer({
       cb(null, crypto.randomBytes(12).toString('hex') + ext);   // random name, no user-controlled path
     }
   }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },               // 5 MB
+  limits: { fileSize: 50 * 1024 * 1024, files: 1 },               // 50 MB
   fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
 });
 app.post('/api/admin/upload', requireAuth, (req, res) => {
   upload.single('image')(req, res, err => {
     if (err) return res.status(400).json({ error: err.message });
-    if (!req.file) return res.status(400).json({ error: 'image must be jpg/png/webp/gif under 5MB' });
+    if (!req.file) return res.status(400).json({ error: 'image must be jpg/png/webp/gif' });
     res.json({ ok: true, url: '/uploads/' + req.file.filename });
   });
 });
@@ -515,7 +515,7 @@ const uploadBulk = multer({
       cb(null, crypto.randomBytes(12).toString('hex') + ext);
     }
   }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 20 },
+  limits: { fileSize: 50 * 1024 * 1024, files: 20 },
   fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
 });
 app.post('/api/admin/upload-bulk', requireAuth, (req, res) => {
