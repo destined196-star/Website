@@ -8,68 +8,121 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
 <style>
-  /* Press article cards — blog style like sripundrik */
-  .press-list { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px; }
+  /* ── Press card grid ── */
+  .press-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+    max-width: 940px;
+    margin: 0 auto;
+  }
 
-  .press-article {
+  /* ── Individual card ── */
+  .press-card {
     background: #fff;
     border: 1px solid var(--line);
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 3px 16px rgba(0,0,0,.06);
-    transition: box-shadow .25s;
+    box-shadow: 0 3px 14px rgba(0,0,0,.06);
+    cursor: pointer;
+    transition: box-shadow .25s, transform .2s;
+    display: flex;
+    flex-direction: column;
   }
-  .press-article:hover { box-shadow: 0 8px 30px rgba(92,51,23,.12); }
+  .press-card:hover {
+    box-shadow: 0 8px 28px rgba(92,51,23,.13);
+    transform: translateY(-2px);
+  }
+  .press-card.open {
+    box-shadow: 0 10px 32px rgba(92,51,23,.16);
+  }
 
-  /* Top accent bar */
-  .press-article::before {
-    content: ''; display: block; height: 4px;
+  /* top accent */
+  .press-card-accent {
+    height: 4px;
     background: linear-gradient(90deg, var(--saffron), var(--saffron-dark));
+    flex-shrink: 0;
   }
 
-  .press-body { padding: 30px 36px 28px; }
-
+  /* header (always visible) */
+  .press-card-header {
+    padding: 20px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--cream);
+    position: relative;
+  }
   .press-meta {
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    margin-bottom: 14px;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
   }
   .press-source {
     background: var(--saffron); color: #fff;
-    font-size: 11px; font-weight: 700; letter-spacing: 1px;
-    text-transform: uppercase; padding: 4px 12px; border-radius: 3px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; padding: 3px 10px; border-radius: 3px;
     font-family: 'Rosario', sans-serif;
   }
-  .press-date {
-    font-size: 13px; color: var(--muted); font-style: italic;
-  }
-  .press-location {
-    font-size: 13px; color: var(--muted);
-  }
+  .press-date { font-size: 12px; color: var(--muted); font-style: italic; }
+  .press-location { font-size: 12px; color: var(--muted); }
 
   .press-headline {
     font-family: 'PT Serif', Georgia, serif;
-    font-size: 1.55rem; font-weight: 700; color: var(--maroon);
-    line-height: 1.4; margin-bottom: 6px;
+    font-size: 1.15rem; font-weight: 700; color: var(--maroon);
+    line-height: 1.4; margin: 0;
   }
   .press-subheadline {
-    font-size: 15px; color: var(--ink); font-style: italic;
-    margin-bottom: 16px; font-weight: 600;
-    border-left: 3px solid var(--saffron);
-    padding-left: 12px;
-  }
-  .press-content {
-    font-size: 15px; color: #4a3520; line-height: 1.85;
-  }
-  .press-content p { margin-bottom: 12px; }
-  .press-content p:last-child { margin-bottom: 0; }
-
-  .press-divider {
-    border: none; border-top: 1px dashed var(--line); margin: 18px 0 16px;
+    font-size: 13px; color: var(--muted); font-style: italic;
+    margin: 0; line-height: 1.5;
   }
 
-  @media (max-width: 640px) {
-    .press-body { padding: 22px 18px; }
-    .press-headline { font-size: 1.2rem; }
+  /* chevron arrow */
+  .press-toggle {
+    position: absolute; right: 18px; top: 50%;
+    transform: translateY(-50%);
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--saffron); display: flex; align-items: center; justify-content: center;
+    transition: transform .3s, background .2s;
+    flex-shrink: 0;
+  }
+  .press-toggle svg {
+    width: 14px; height: 14px; fill: none;
+    stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+    transition: transform .3s;
+  }
+  .press-card.open .press-toggle { background: var(--maroon); }
+  .press-card.open .press-toggle svg { transform: rotate(180deg); }
+
+  /* collapsible body */
+  .press-card-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .45s ease, padding .3s ease;
+    padding: 0 22px;
+    background: #fff;
+  }
+  .press-card.open .press-card-body {
+    max-height: 800px;
+    padding: 20px 22px 24px;
+  }
+
+  .press-body-inner hr {
+    border: none; border-top: 1px dashed var(--line); margin: 14px 0;
+  }
+  .press-body-inner p {
+    font-size: 14.5px; color: #4a3520; line-height: 1.85; margin-bottom: 12px;
+  }
+  .press-body-inner p:last-child { margin-bottom: 0; }
+  .press-body-inner strong { color: var(--maroon); }
+
+  .press-read-less {
+    display: inline-block; margin-top: 14px;
+    font-size: 12px; color: var(--saffron-dark); font-weight: 700;
+    text-decoration: underline; letter-spacing: .5px;
+  }
+
+  @media (max-width: 680px) {
+    .press-grid { grid-template-columns: 1fr; gap: 18px; }
+    .press-headline { font-size: 1rem; }
   }
 </style>
 </head>
@@ -123,86 +176,109 @@
   <div class="container">
     <div class="section-title">
       <h2>In the News</h2>
-      <p>Newspaper and press coverage of Devi Murlika Gaur's devotional mission</p>
+      <p>Click any card to read the full press coverage</p>
     </div>
 
-    <div class="press-list">
+    <div class="press-grid">
 
-      <!-- Article 1 -->
-      <article class="press-article">
-        <div class="press-body">
+      <!-- Card 1 -->
+      <div class="press-card" role="button" tabindex="0" aria-expanded="false">
+        <div class="press-card-accent"></div>
+        <div class="press-card-header">
           <div class="press-meta">
-            <span class="press-source">📰 Press Coverage</span>
-            <span class="press-location">📍 Vrindavan, Uttar Pradesh</span>
+            <span class="press-source">📰 Press</span>
+            <span class="press-location">📍 Vrindavan, UP</span>
           </div>
           <h2 class="press-headline">भगवान के सत्संग से ही मिलेगी सन्मार्ग की प्राप्ति</h2>
-          <div class="press-subheadline">Satsang with the Lord is the only path to righteousness — Devi Murlika Gaur</div>
-          <hr class="press-divider" />
-          <div class="press-content">
-            <p>आज का मनुष्य अस्त-व्यस्त जीवन जी रहा है। इस अस्त-व्यस्त जीवन को सन्मार्ग पर लाने का कार्य केवल भगवान के सत्संग से हो सकता है। किसी ने बहुत सुंदर बात कही है कि पत्ता तभी तक सुरक्षित है जब तक पेड़ से जुड़ा है, वैसे ही एक पत्थर तब तक सुरक्षित है जब तक वह पहाड़ से जुड़ा होता है। उसी प्रकार मानव सत्संग से जुड़ा है तभी तक सुरक्षित है।</p>
-            <p>वृन्दावन के गांधी मैदान में आयोजित 10 दिवसीय श्री गणेश महोत्सव के दौरान शनिवार को श्रीमद् भागवत कथा वाचन के क्रम में वृन्दावन से आईं देवी मुरलिका गौड़ ने कहा। उन्होंने कहा कि सत्संग के दौरान भगवान श्री कृष्ण के दास गोवर्धन पूजा एवं इंद्र के अहंकार को तोड़ने के विस्तार से चर्चा की गई। मौके पर भगवान को ५६ प्रकार के व्यंजनों का भोग भी लगाया गया।</p>
-            <p>श्री गणेश महोत्सव के क्रम में पूजा-पाठ के साथ ही संध्या काल में भव्य आरती का आयोजन किया जाता है, जिसमें बड़ी संख्या में महिला व पुरुष श्रद्धालु शामिल होते हैं।</p>
+          <p class="press-subheadline">Satsang is the only path to righteousness — Ganesh Mahotsav, Vrindavan</p>
+          <div class="press-toggle">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
-      </article>
+        <div class="press-card-body">
+          <div class="press-body-inner">
+            <p>आज का मनुष्य अस्त-व्यस्त जीवन जी रहा है। इस अस्त-व्यस्त जीवन को सन्मार्ग पर लाने का कार्य केवल भगवान के सत्संग से हो सकता है। किसी ने बहुत सुंदर बात कही है कि पत्ता तभी तक सुरक्षित है जब तक पेड़ से जुड़ा है, वैसे ही एक पत्थर तब तक सुरक्षित है जब तक वह पहाड़ से जुड़ा होता है। उसी प्रकार मानव सत्संग से जुड़ा है तभी तक सुरक्षित है।</p>
+            <p>वृन्दावन के गांधी मैदान में आयोजित 10 दिवसीय श्री गणेश महोत्सव के दौरान शनिवार को श्रीमद् भागवत कथा वाचन के क्रम में वृन्दावन से आईं देवी मुरलिका गौड़ ने कहा। कथा के दौरान भगवान श्री कृष्ण के दास गोवर्धन पूजा एवं इंद्र के अहंकार को तोड़ने के विस्तार से चर्चा की गई। मौके पर भगवान को 56 प्रकार के व्यंजनों का भोग भी लगाया गया।</p>
+            <p>श्री गणेश महोत्सव के क्रम में पूजा-पाठ के साथ ही संध्या काल में भव्य आरती का आयोजन किया जाता है, जिसमें बड़ी संख्या में महिला व पुरुष श्रद्धालु शामिल होते हैं।</p>
+            <span class="press-read-less">▲ Close</span>
+          </div>
+        </div>
+      </div>
 
-      <!-- Article 2 -->
-      <article class="press-article">
-        <div class="press-body">
+      <!-- Card 2 -->
+      <div class="press-card" role="button" tabindex="0" aria-expanded="false">
+        <div class="press-card-accent"></div>
+        <div class="press-card-header">
           <div class="press-meta">
-            <span class="press-source">📰 Press Coverage</span>
-            <span class="press-location">📍 Vrindavan, Uttar Pradesh</span>
+            <span class="press-source">📰 Press</span>
+            <span class="press-location">📍 Vrindavan, UP</span>
           </div>
           <h2 class="press-headline">मौन रहने से समस्त शत्रुओं का होता है नाश</h2>
-          <div class="press-subheadline">Silence destroys all enemies — Devi Murlika Gaur at Shrimad Bhagwat Katha</div>
-          <hr class="press-divider" />
-          <div class="press-content">
-            <p>श्रीमद् भागवत में मुरलिका गौड़ ने कहा — देहालय में शिवालय को प्रकट करना है तो सीखो प्रभु से प्रेम करना। कथा के क्रम में श्री गणेश महोत्सव का स्वागत भव्य तरीके से किया गया। हजारों श्रद्धालुओं की उपस्थिति में अभिजीत काल मुहूर्त में जिला व सत्र न्यायाधीश ने दीप प्रज्वलित कर गणेश महोत्सव का उद्घाटन किया।</p>
+          <p class="press-subheadline">Silence destroys all enemies — Shrimad Bhagwat Katha discourse</p>
+          <div class="press-toggle">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div class="press-card-body">
+          <div class="press-body-inner">
+            <p>श्रीमद् भागवत में मुरलिका गौड़ ने कहा — देहालय में शिवालय को प्रकट करना है तो सीखो प्रभु से प्रेम करना। हजारों श्रद्धालुओं की उपस्थिति में अभिजीत काल मुहूर्त में जिला व सत्र न्यायाधीश ने दीप प्रज्वलित कर गणेश महोत्सव का उद्घाटन किया।</p>
             <p>कथावाचिका देवी मुरलिका गौड़ ने अपने प्रवचन में कहा कि जीवन में मौन का अत्यन्त महत्व है। जो व्यक्ति मौन धारण कर लेता है उसके समस्त शत्रुओं का नाश हो जाता है। ईश्वर का नाम ही सबसे बड़ा हथियार है — यह जीवन में शांति और समृद्धि का द्वार है।</p>
             <p>ते री जय हो गणेश, मेरी जय हो पर झूमे श्रोता। गणपति बप्पा मोरया का गूंजता रहा जयघोष। कार्यक्रम के मंच संचालन प्रभुदयाल सुमन महेन्द्र ने किया।</p>
+            <span class="press-read-less">▲ Close</span>
           </div>
         </div>
-      </article>
+      </div>
 
-      <!-- Article 3 -->
-      <article class="press-article">
-        <div class="press-body">
+      <!-- Card 3 -->
+      <div class="press-card" role="button" tabindex="0" aria-expanded="false">
+        <div class="press-card-accent"></div>
+        <div class="press-card-header">
           <div class="press-meta">
             <span class="press-source">📰 Haribhoomi</span>
-            <span class="press-date">8 June 2022</span>
-            <span class="press-location">📍 Guna–Rajgarh–Ashok Nagar</span>
+            <span class="press-date">8 Jun 2022</span>
           </div>
           <h2 class="press-headline">छिपीए मत छिपिए: देवी मुरली</h2>
-          <div class="press-subheadline">नगर में वृन्दावन से पधारी देवी मुरली गौड़ से खास मुलाकात — Haribhoomi Exclusive Interview</div>
-          <hr class="press-divider" />
-          <div class="press-content">
-            <p>नगर में वृन्दावन से पधारी देवी मुरलिका गौड़ द्वारा हरि कथा का वाचन किया जा रहा है। इस कथा की खूब विशेषता है कि इसमें ८०% महिलाएं देवी मुरलिका के प्रवचनों को सुनने आती हैं। देवी मुरलिका गौड़ ने हमारी प्रतिनिधि को बताया कि यहाँ से उनसे हरि कथा का श्रवण करने और कैसे हरि कथा से मुक्ति मिलती है, इसके बारे में चर्चा करने वह आ रही हैं।</p>
-            <p><strong>प्रश्न:</strong> कस से और किस की प्रेरणा से हरि कथा का गुणगान कर रही हैं आप?<br/>
-            <strong>उत्तर:</strong> मेरे घर में हरि कथा का वातावरण परम्परागत पला आया है। मेरे काका जी वृन्दावन मुगों उनके बाद मेरे दिवंगत हरि कथा का श्रवण कराया। उनके बाद, स्वयं मैं सन् 2012 में मैंने इस श्रेष्ठ को समर्पित किया।</p>
-            <p><strong>प्रश्न:</strong> क्या कृष्ण भक्ति के मार्ग में भी बाधाएं आई?<br/>
-            <strong>उत्तर:</strong> हाँ, बिल्कुल सच कहूं तो ऐसे लोग भी मिले जो मानते थे कि महिलाओं को यह कार्य नहीं करना चाहिए। लेकिन मैंने अपनी साधना और भगवान की कृपा से आगे बढ़ती रही।</p>
-            <p>देवी मुरलिका गौड़ अपने प्रवचनों में महिलाओं को विशेष रूप से सम्बोधित करती हैं और उन्हें शिक्षित करने का सन्देश देती हैं — "छिपीए मत, अपनी प्रतिभा को दुनिया के सामने रखिए।"</p>
+          <p class="press-subheadline">नगर में वृन्दावन से पधारी देवी मुरली गौड़ से खास मुलाकात — Haribhoomi exclusive</p>
+          <div class="press-toggle">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
-      </article>
+        <div class="press-card-body">
+          <div class="press-body-inner">
+            <p>नगर में वृन्दावन से पधारी देवी मुरलिका गौड़ द्वारा हरि कथा का वाचन किया जा रहा है। इस कथा की खूब विशेषता है कि इसमें ८०% महिलाएं देवी मुरलिका के प्रवचनों को सुनने आती हैं।</p>
+            <p><strong>प्रश्न:</strong> किस से और किस की प्रेरणा से हरि कथा का गुणगान कर रही हैं आप?<br/>
+            <strong>उत्तर:</strong> मेरे घर में हरि कथा का वातावरण परम्परागत पला आया है। मैंने सन् 2012 में इस श्रेष्ठ मार्ग को अपनाया।</p>
+            <p><strong>प्रश्न:</strong> क्या कृष्ण भक्ति के मार्ग में बाधाएं भी आईं?<br/>
+            <strong>उत्तर:</strong> हाँ, ऐसे लोग भी मिले जो मानते थे कि महिलाओं को यह कार्य नहीं करना चाहिए। लेकिन भगवान की कृपा से आगे बढ़ती रही।</p>
+            <p>देवी मुरलिका गौड़ अपने प्रवचनों में महिलाओं को विशेष संदेश देती हैं — <strong>"छिपीए मत, अपनी प्रतिभा को दुनिया के सामने रखिए।"</strong></p>
+            <span class="press-read-less">▲ Close</span>
+          </div>
+        </div>
+      </div>
 
-      <!-- Article 4 -->
-      <article class="press-article">
-        <div class="press-body">
+      <!-- Card 4 -->
+      <div class="press-card" role="button" tabindex="0" aria-expanded="false">
+        <div class="press-card-accent"></div>
+        <div class="press-card-header">
           <div class="press-meta">
-            <span class="press-source">📰 Media Coverage</span>
-            <span class="press-location">📍 Vrindavan / Aastha Region</span>
+            <span class="press-source">📰 Press</span>
+            <span class="press-location">📍 Vrindavan / Aastha</span>
           </div>
           <h2 class="press-headline">पट खुलते ही दर्शन के लिए उमड़े हजारों भक्त</h2>
-          <div class="press-subheadline">ढाक की थाप पर धनुची आरती नृत्य से माहौल भक्तिमय — Devi Murlika Gaur ने सुनाई भागवतकथा</div>
-          <hr class="press-divider" />
-          <div class="press-content">
-            <p>जिला व सत्र न्यायाधीश ने दीप प्रज्वलित कर गणेश महोत्सव का उद्घाटन किया। महोत्सव में उपस्थित श्रद्धालुओं को संबोधित करते हुए वृन्दावन से आई कथा वाचिका देवी मुरलीका गौड़ ने सुनाई भागवतकथा। पट खुलते ही हजारों भक्त दर्शन के लिए उमड़ पड़े।</p>
-            <p>ढाक की थाप पर धनुची आरती नृत्य से पूरा माहौल भक्तिमय हो गया। कार्यक्रम में बड़ी संख्या में महिला, पुरुष और बच्चे सम्मिलित हुए। आरती में बच्चों और युवाओं की भागीदारी विशेष रूप से उल्लेखनीय रही।</p>
-            <p>श्रीमद् भागवत कथा के प्रवचन के दौरान देवी मुरलिका गौड़ ने कहा कि भगवान के भजन और भक्ति से ही जीवन में शांति और सुख की प्राप्ति होती है। उन्होंने उपस्थित श्रद्धालुओं को भक्ति मार्ग पर चलने की प्रेरणा दी और कहा कि ईश्वर का स्मरण ही सबसे बड़ी साधना है।</p>
+          <p class="press-subheadline">ढाक की थाप पर आरती नृत्य — Devi Murlika Gaur ने सुनाई भागवतकथा</p>
+          <div class="press-toggle">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
         </div>
-      </article>
+        <div class="press-card-body">
+          <div class="press-body-inner">
+            <p>जिला व सत्र न्यायाधीश ने दीप प्रज्वलित कर गणेश महोत्सव का उद्घाटन किया। वृन्दावन से आई कथा वाचिका देवी मुरलीका गौड़ ने भागवतकथा सुनाई। पट खुलते ही हजारों भक्त दर्शन के लिए उमड़ पड़े।</p>
+            <p>ढाक की थाप पर धनुची आरती नृत्य से पूरा माहौल भक्तिमय हो गया। कार्यक्रम में बड़ी संख्या में महिला, पुरुष और बच्चे सम्मिलित हुए।</p>
+            <p>देवी मुरलिका गौड़ ने कहा कि भगवान के भजन और भक्ति से ही जीवन में शांति और सुख की प्राप्ति होती है। ईश्वर का स्मरण ही सबसे बड़ी साधना है।</p>
+            <span class="press-read-less">▲ Close</span>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -256,5 +332,43 @@
 
 <script src="public.js"></script>
 <script src="script.js"></script>
+<script>
+// Accordion — click card header to expand/collapse
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.press-card').forEach(function (card) {
+    var header = card.querySelector('.press-card-header');
+    function toggle() {
+      var isOpen = card.classList.contains('open');
+      // Close all others
+      document.querySelectorAll('.press-card.open').forEach(function (c) {
+        c.classList.remove('open');
+        c.setAttribute('aria-expanded', 'false');
+      });
+      // Toggle this one
+      if (!isOpen) {
+        card.classList.add('open');
+        card.setAttribute('aria-expanded', 'true');
+        // Smooth scroll so expanded content is visible
+        setTimeout(function () {
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    }
+    header.addEventListener('click', toggle);
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+    // "Close" link inside body
+    var closeLink = card.querySelector('.press-read-less');
+    if (closeLink) {
+      closeLink.addEventListener('click', function (e) {
+        e.stopPropagation();
+        card.classList.remove('open');
+        card.setAttribute('aria-expanded', 'false');
+      });
+    }
+  });
+});
+</script>
 </body>
 </html>
