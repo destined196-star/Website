@@ -758,7 +758,8 @@ async function loadDonations() {
 const SETTINGS_KEYS = [
   'youtube', 'facebook', 'instagram', 'pinterest',
   'phone', 'location', 'bio',
-  'paypal_link', 'upi_id', 'donation_note'
+  'paypal_link', 'upi_id', 'donation_note',
+  'bank_name', 'bank_account_name', 'bank_account_number', 'bank_ifsc', 'bank_branch'
 ];
 
 async function loadSettings() {

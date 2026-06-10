@@ -97,4 +97,26 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   }
+
+  // Load bank transfer details from settings
+  fetch('/api/settings').then(function (r) { return r.json(); }).then(function (s) {
+    // Donation note
+    var note = document.getElementById('donateNote');
+    if (note && s.donation_note) note.textContent = s.donation_note;
+
+    // Bank transfer section — show only if account number is filled in settings
+    if (s.bank_account_number) {
+      var sec = document.getElementById('bankSection');
+      if (sec) {
+        document.getElementById('bankAccName').textContent = s.bank_account_name || '';
+        document.getElementById('bankAccNum').textContent = s.bank_account_number || '';
+        document.getElementById('bankIfsc').textContent = s.bank_ifsc || '';
+        document.getElementById('bankName').textContent = s.bank_name || '';
+        var branch = document.getElementById('bankBranch');
+        if (s.bank_branch) { branch.textContent = s.bank_branch; }
+        else { document.getElementById('bankBranchRow').style.display = 'none'; }
+        sec.style.display = '';
+      }
+    }
+  }).catch(function () {});
 });

@@ -141,7 +141,12 @@ const defaults = {
   paypal_link: '',
   razorpay_key: '',
   upi_id: '',
-  donation_note: 'Your contribution helps spread the message of devotion, supports satsang and seva. 🙏'
+  donation_note: 'Your contribution helps spread the message of devotion, supports satsang and seva. 🙏',
+  bank_name: '',
+  bank_account_name: '',
+  bank_account_number: '',
+  bank_ifsc: '',
+  bank_branch: ''
 };
 const getSetting = db.prepare('SELECT value FROM settings WHERE key=?');
 const setSetting = db.prepare('INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)');
