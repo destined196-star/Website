@@ -144,6 +144,35 @@ app.get('/api/videos', (req, res) => {
   res.json(db.prepare('SELECT * FROM videos ORDER BY sort_order, id').all());
 });
 
+// Playlists — public
+app.get('/api/playlists', (req, res) => {
+  const playlists = db.prepare('SELECT * FROM playlists ORDER BY sort_order, id').all();
+  // Attach video count and videos to each playlist
+  const getVids = db.prepare(`
+    SELECT v.* FROM playlist_videos pv
+    JOIN videos v ON v.id = pv.video_id
+    WHERE pv.playlist_id = ?
+    ORDER BY pv.sort_order, pv.id
+  `);
+  for (const p of playlists) {
+    p.videos = getVids.all(p.id);
+    p.video_count = p.videos.length;
+  }
+  res.json(playlists);
+});
+app.get('/api/playlists/:id', (req, res) => {
+  const p = db.prepare('SELECT * FROM playlists WHERE id=?').get(req.params.id);
+  if (!p) return res.status(404).json({ error: 'Not found' });
+  p.videos = db.prepare(`
+    SELECT v.* FROM playlist_videos pv
+    JOIN videos v ON v.id = pv.video_id
+    WHERE pv.playlist_id = ?
+    ORDER BY pv.sort_order, pv.id
+  `).all(p.id);
+  p.video_count = p.videos.length;
+  res.json(p);
+});
+
 app.get('/api/press', (req, res) => {
   res.json(db.prepare('SELECT * FROM press_articles ORDER BY sort_order, id').all());
 });
@@ -397,6 +426,42 @@ app.put('/api/admin/videos/:id', requireAuth, (req, res) => {
 });
 app.delete('/api/admin/videos/:id', requireAuth, (req, res) => {
   db.prepare('DELETE FROM videos WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// Playlists admin
+app.post('/api/admin/playlists', requireAuth, (req, res) => {
+  const { name, description, cover_image, sort_order } = req.body;
+  if (!name) return res.status(400).json({ error: 'name required' });
+  const r = db.prepare('INSERT INTO playlists (name,description,cover_image,sort_order) VALUES (?,?,?,?)')
+    .run(cap(name, 200), cap(description, 500) || '', cover_image || '', Number(sort_order) || 0);
+  res.json({ ok: true, id: r.lastInsertRowid });
+});
+app.put('/api/admin/playlists/:id', requireAuth, (req, res) => {
+  const { name, description, cover_image, sort_order } = req.body;
+  db.prepare('UPDATE playlists SET name=?,description=?,cover_image=?,sort_order=? WHERE id=?')
+    .run(cap(name, 200), cap(description, 500) || '', cover_image || '', Number(sort_order) || 0, req.params.id);
+  res.json({ ok: true });
+});
+app.delete('/api/admin/playlists/:id', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM playlist_videos WHERE playlist_id=?').run(req.params.id);
+  db.prepare('DELETE FROM playlists WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+// Add/remove videos from playlist
+app.post('/api/admin/playlists/:id/videos', requireAuth, (req, res) => {
+  const { video_ids } = req.body;  // array of video IDs
+  if (!Array.isArray(video_ids)) return res.status(400).json({ error: 'video_ids array required' });
+  const ins = db.prepare('INSERT OR IGNORE INTO playlist_videos (playlist_id,video_id,sort_order) VALUES (?,?,?)');
+  const tx = db.transaction(() => {
+    video_ids.forEach((vid, i) => ins.run(req.params.id, vid, i + 1));
+  });
+  tx();
+  res.json({ ok: true });
+});
+app.delete('/api/admin/playlists/:pid/videos/:vid', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM playlist_videos WHERE playlist_id=? AND video_id=?')
+    .run(req.params.pid, req.params.vid);
   res.json({ ok: true });
 });
 
