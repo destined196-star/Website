@@ -101,7 +101,7 @@ if (_undoBtnEl) {
 }
 
 /* ── Tabs ────────────────────────────────────── */
-const TABS = ['dashboard', 'messages', 'events', 'posts', 'gallery', 'videos', 'press', 'donations', 'settings'];
+const TABS = ['events', 'posts', 'gallery', 'videos', 'press', 'messages', 'donations', 'settings'];
 
 function switchTab(name) {
   document.querySelectorAll('.admin-nav button').forEach(b =>
@@ -146,7 +146,7 @@ let videos = [], videoMap = {};
 let pressArr = [], pressMap = {};
 
 /* ── Charts ──────────────────────────────────── */
-let _chartBar, _chartDough;
+let _chartBar;
 
 function buildCharts() {
   const labels = [], counts = [];
@@ -174,33 +174,10 @@ function buildCharts() {
       }
     });
   }
-  const c2 = $('chartOverview');
-  if (c2 && typeof Chart !== 'undefined') {
-    if (_chartDough) _chartDough.destroy();
-    _chartDough = new Chart(c2.getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: ['Gallery', 'Events', 'Thoughts', 'Messages'],
-        datasets: [{
-          data: [gallery.length, evts.length, posts.length, msgs.length],
-          backgroundColor: ['#e8a61e', '#7a1c3c', '#c8860e', '#a04020'],
-          borderColor: '#fff', borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } } }
-      }
-    });
-  }
 }
 
 function updateCounts() {
-  const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
-  set('st-msg', msgs.length);
-  set('st-gal', gallery.length);
-  set('st-ev', evts.length);
-  set('st-po', posts.length);
+  // Update badge counts in tab headers where present
 }
 
 /* ══════════════════════════════════════════════
@@ -211,19 +188,9 @@ async function loadMessages() {
   msgMap = Object.fromEntries(msgs.map(m => [m.id, m]));
   updateCounts();
 
-  const dash = $('dashMsgList');
-  if (dash) {
-    dash.innerHTML = msgs.length
-      ? msgs.slice(0, 5).map(m => `
-        <div class="dash-msg">
-          <div>
-            <span class="dm-who">${esc(m.name)}</span>
-            <span class="dm-time">&lt;${esc(m.email)}&gt; &nbsp;·&nbsp; ${esc(m.created_at || '')}</span>
-          </div>
-          <div class="dm-text">${esc((m.message || '').substring(0, 150))}${(m.message || '').length > 150 ? '…' : ''}</div>
-        </div>`).join('')
-      : '<p style="color:var(--muted)">No messages yet.</p>';
-  }
+  // Update count in tab header
+  const stMsg = $('st-msg');
+  if (stMsg) stMsg.textContent = msgs.length ? `(${msgs.length})` : '';
 
   const list = $('msgList');
   if (!list) return;
