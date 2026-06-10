@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Media Coverage – Devi Murlika Gaur</title>
+<meta name="description" content="Newspaper and media coverage of Devi Murlika Gaur — satsang, katha and devotional events." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  /* Press clipping card */
+  .press-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .press-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    transition: transform .25s, box-shadow .25s;
+  }
+  .press-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 32px rgba(92,51,23,.13);
+  }
+  .press-card-img {
+    display: block;
+    width: 100%;
+    cursor: zoom-in;
+    border-bottom: 2px solid var(--line);
+  }
+  .press-card-img img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+    max-height: 420px;
+    transition: opacity .2s;
+  }
+  .press-card:hover .press-card-img img { opacity: .92; }
+  .press-card-body {
+    padding: 16px 20px;
+    background: var(--cream);
+  }
+  .press-label {
+    display: inline-block;
+    background: var(--saffron);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .8px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .press-card-body p {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,.88); align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img {
+    max-width: 100%; max-height: 92vh;
+    border-radius: 6px; box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  }
+  .lightbox-close {
+    position: fixed; top: 16px; right: 20px;
+    background: none; border: none; color: #fff;
+    font-size: 36px; cursor: pointer; line-height: 1;
+    text-shadow: 0 1px 4px rgba(0,0,0,.6);
+  }
+
+  @media (max-width: 640px) {
+    .press-grid { grid-template-columns: 1fr; gap: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="container">
+    <span>🙏 Sharing devotional thoughts &amp; spiritual wisdom</span>
+    <span class="social">
+      <a href="https://facebook.com/devimurlika" target="_blank" rel="noopener">Facebook</a>
+      <a href="https://instagram.com/devimurlika_madhu" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener">YouTube</a>
+      <a href="https://in.pinterest.com/devimurlikagaur/" target="_blank" rel="noopener">Pinterest</a>
+    </span>
+  </div>
+</div>
+
+<header class="header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">ॐ</div>
+      <div class="brand-text">
+        <h1>Devi Murlika Gaur</h1>
+        <small>Devotional thoughts &amp; spiritual wisdom</small>
+      </div>
+    </a>
+    <button class="menu-toggle" aria-label="menu">☰</button>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="introduction.html">About</a></li>
+        <li><a href="videos.html">Videos</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="media.html" class="active">Media</a></li>
+        <li><a href="events.html">Events</a></li>
+        <li><a href="donation.html">Donate</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<section class="page-banner">
+  <div class="container">
+    <h1>Media Coverage</h1>
+    <div class="breadcrumb"><a href="index.html">Home</a> &nbsp;›&nbsp; Media</div>
+  </div>
+</section>
+
+<section class="intro">
+  <div class="container">
+    <div class="section-title">
+      <h2>In the News</h2>
+      <p>Newspaper and press coverage of Devi Murlika Gaur's devotional mission</p>
+    </div>
+
+    <div class="press-grid">
+
+      <div class="press-card">
+        <a class="press-card-img" href="images/press-1.jpg" data-lightbox>
+          <img src="images/press-1.jpg" alt="भगवान के सत्संग से ही मिलेगी सन्मार्ग की प्राप्ति" loading="lazy" />
+        </a>
+        <div class="press-card-body">
+          <span class="press-label">📰 Press Coverage</span>
+          <p>भगवान के सत्संग से ही मिलेगी सन्मार्ग की प्राप्ति — Devi Murlika Gaur at Ganesh Mahotsav, Vrindavan</p>
+        </div>
+      </div>
+
+      <div class="press-card">
+        <a class="press-card-img" href="images/press-2.jpg" data-lightbox>
+          <img src="images/press-2.jpg" alt="मौन रहने से समस्त शत्रुओं का होता है नाश" loading="lazy" />
+        </a>
+        <div class="press-card-body">
+          <span class="press-label">📰 Press Coverage</span>
+          <p>मौन रहने से समस्त शत्रुओं का होता है नाश — Shrimad Bhagwat Katha discourse coverage</p>
+        </div>
+      </div>
+
+      <div class="press-card">
+        <a class="press-card-img" href="images/press-3.jpg" data-lightbox>
+          <img src="images/press-3.jpg" alt="छिपीए मत छिपिए: देवी मुरली — Haribhoomi" loading="lazy" />
+        </a>
+        <div class="press-card-body">
+          <span class="press-label">📰 Haribhoomi · Jun 2022</span>
+          <p>छिपीए मत छिपिए: देवी मुरली — Special interview with Haribhoomi newspaper, Vrindavan</p>
+        </div>
+      </div>
+
+      <div class="press-card">
+        <a class="press-card-img" href="images/press-4.jpg" data-lightbox>
+          <img src="images/press-4.jpg" alt="पट खुलते ही दर्शन के लिए उमड़े हजारों भक्त" loading="lazy" />
+        </a>
+        <div class="press-card-body">
+          <span class="press-label">📰 Press Coverage</span>
+          <p>पट खुलते ही दर्शन के लिए उमड़े हजारों भक्त — Bhagwat Katha at Ganesh Mahotsav event coverage</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Lightbox overlay -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lbClose" aria-label="Close">✕</button>
+  <img id="lbImg" src="" alt="" />
+</div>
+
+<footer id="contact">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>Devi Murlika Gaur</h4>
+        <p>Spiritual speaker and devotional content creator sharing thoughts on bhakti, faith and inner peace with a growing community of seekers.</p>
+        <div class="social-icons">
+          <a href="https://facebook.com/devimurlika" target="_blank" rel="noopener">f</a>
+          <a href="https://instagram.com/devimurlika_madhu" target="_blank" rel="noopener">ig</a>
+          <a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener">yt</a>
+          <a href="https://in.pinterest.com/devimurlikagaur/" target="_blank" rel="noopener">p</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul>
+          <li><a href="introduction.html">About</a></li>
+          <li><a href="videos.html">Videos</a></li>
+          <li><a href="gallery.html">Gallery</a></li>
+          <li><a href="media.html">Media</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="donation.html">Donate</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Follow</h4>
+        <ul>
+          <li><a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://facebook.com/devimurlika" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a href="https://instagram.com/devimurlika_madhu" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://in.pinterest.com/devimurlikagaur/" target="_blank" rel="noopener">Pinterest</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <p>📍 India</p>
+        <p>📞 <a href="tel:+917827183187">+91 78271 83187</a></p>
+        <p>📺 <a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener">youtube.com/@devimurlikagaur</a></p>
+        <p>🙏 Joined 16 Sept 2017</p>
+      </div>
+    </div>
+    <div class="copyright">All Rights Reserved © 2025-26 Devi Murlika Gaur</div>
+  </div>
+</footer>
+
+<script src="public.js"></script>
+<script src="script.js"></script>
+<script>
+// Lightbox
+document.addEventListener('DOMContentLoaded', function () {
+  var lb = document.getElementById('lightbox');
+  var lbImg = document.getElementById('lbImg');
+  document.querySelectorAll('[data-lightbox]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      lbImg.src = this.href;
+      lbImg.alt = this.querySelector('img').alt;
+      lb.classList.add('open');
+    });
+  });
+  document.getElementById('lbClose').addEventListener('click', function () {
+    lb.classList.remove('open'); lbImg.src = '';
+  });
+  lb.addEventListener('click', function (e) {
+    if (e.target === lb) { lb.classList.remove('open'); lbImg.src = ''; }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { lb.classList.remove('open'); lbImg.src = ''; }
+  });
+});
+</script>
+</body>
+</html>
