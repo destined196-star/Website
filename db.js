@@ -85,6 +85,27 @@ db.exec(`
     reference TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS videos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    youtube_url TEXT NOT NULL,
+    description TEXT,
+    featured INTEGER DEFAULT 0,
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS press_articles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    publication TEXT,
+    date_label TEXT,
+    content TEXT,
+    image TEXT,
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 // Add login-security columns to admin if missing (TOTP 2FA + lockout)
@@ -139,6 +160,24 @@ if (db.prepare('SELECT COUNT(*) c FROM posts').get().c === 0) {
   ins.run('Finding Peace in a Busy Life', 'Simple spiritual practices to stay grounded amid the rush of modern living.', 'https://picsum.photos/seed/db2/600/400', '12 Nov 2025');
   ins.run('Gratitude as a Spiritual Practice', 'Why a thankful heart is the foundation of devotion and lasting happiness.', 'https://picsum.photos/seed/db3/600/400', '04 Nov 2025');
 }
+if (db.prepare('SELECT COUNT(*) c FROM videos').get().c === 0) {
+  const ins = db.prepare('INSERT INTO videos (title,youtube_url,description,featured,sort_order) VALUES (?,?,?,?,?)');
+  ins.run('Har Ghadi Yaad Teri Aaye', 'https://www.youtube.com/watch?v=gch5x0Ja7NE', 'Devotional bhajan', 1, 1);
+  ins.run('Devotional Thoughts', 'https://www.youtube.com/watch?v=0XgFXsRFWS4', '', 0, 2);
+  ins.run('Bhajan & Kirtan', 'https://www.youtube.com/watch?v=AhANlTzF__s', '', 0, 3);
+  ins.run('Spiritual Wisdom', 'https://www.youtube.com/watch?v=SZ0NtF4HoJ8', '', 0, 4);
+  ins.run('Satsang', 'https://www.youtube.com/watch?v=DiKizDW_Tbk', '', 0, 5);
+  ins.run('Kirtan', 'https://www.youtube.com/watch?v=FYGLo650Zbw', '', 0, 6);
+  ins.run('Bhakti', 'https://www.youtube.com/watch?v=N_tzLSrzAkQ', '', 0, 7);
+}
+if (db.prepare('SELECT COUNT(*) c FROM press_articles').get().c === 0) {
+  const ins = db.prepare('INSERT INTO press_articles (title,publication,date_label,content,image,sort_order) VALUES (?,?,?,?,?,?)');
+  ins.run('Ganesh Mahotsav Satsang Coverage', 'Dainik Jagran', 'Aug 2023', 'Devi Murlika Gaur Ji delivered an inspiring spiritual discourse at the Ganesh Mahotsav satsang. Hundreds of devotees gathered to listen to her devotional thoughts on bhakti and inner peace. The event was widely appreciated for its spiritual depth and musical renditions.', '/images/press-1.jpg', 1);
+  ins.run('Shrimad Bhagwat Katha — Special Report', 'Amar Ujala', 'Jan 2023', 'The seven-day Shrimad Bhagwat Katha organized by Devi Murlika Gaur Ji drew thousands of devotees from across the region. Her storytelling style, blending classical scripture with everyday wisdom, earned widespread praise. The katha concluded with a grand bhajan sandhya.', '/images/press-2.jpg', 2);
+  ins.run('Interview: Spreading Devotion Through Digital Media', 'Haribhoomi', 'Mar 2022', 'In an exclusive interview, Devi Murlika Gaur Ji spoke about her journey as a spiritual speaker and content creator. She discussed how social media has helped spread the message of bhakti to millions of seekers worldwide and her plans for upcoming satsang programmes.', '/images/press-3.jpg', 3);
+  ins.run('पट खुलते — Spiritual Programme Report', 'Nav Bharat Times', 'Nov 2021', 'The sacred programme "Patt Khulte" organized under the guidance of Devi Murlika Gaur Ji was a deeply moving spiritual event. The ceremony brought together devotees for prayers, bhajans and an enlightening discourse on the importance of devotion in daily life.', '/images/press-4.jpg', 4);
+}
+
 // Replace placeholder/malformed gallery images with real YouTube thumbnails
 const galBad = db.prepare("SELECT COUNT(*) c FROM gallery WHERE image LIKE '%picsum%' OR image LIKE '% %' OR image=''").get().c;
 if (galBad > 0 || db.prepare('SELECT COUNT(*) c FROM gallery').get().c === 0) {

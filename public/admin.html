@@ -227,6 +227,8 @@
     <button data-tab="events">📅 Events</button>
     <button data-tab="posts">✍️ Thoughts</button>
     <button data-tab="gallery">🖼️ Gallery</button>
+    <button data-tab="videos">🎬 Videos</button>
+    <button data-tab="press">📰 Press</button>
     <button data-tab="donations">💛 Donations</button>
     <button data-tab="settings">⚙️ Settings</button>
   </div>
@@ -371,6 +373,51 @@
       <div class="g-grid" id="gGrid">
         <p style="color:var(--muted)">Loading…</p>
       </div>
+    </div>
+  </div>
+
+  <!-- ══ VIDEOS ══ -->
+  <div class="admin-section" id="s-videos">
+    <div class="a-panel">
+      <h3 id="vidFormTitle">Add New Video</h3>
+      <div class="f-field"><label>Title</label><input id="vidTitle" placeholder="Bhajan title or video name" /></div>
+      <div class="f-field"><label>YouTube URL</label><input id="vidUrl" placeholder="https://www.youtube.com/watch?v=..." /></div>
+      <div class="f-field"><label>Description (optional)</label><input id="vidDesc" placeholder="Short description" /></div>
+      <div class="f-row">
+        <div class="f-field"><label>Sort order</label><input id="vidSort" type="number" value="0" /></div>
+        <div class="f-field"><label>Featured (show at top)</label>
+          <select id="vidFeatured"><option value="0">No</option><option value="1">Yes — Featured</option></select>
+        </div>
+      </div>
+      <input id="vidId" type="hidden" />
+      <button class="btn-save" onclick="saveVideo()">💾 Save Video</button>
+      <button class="btn-clear" onclick="clearVideo()">Clear</button>
+    </div>
+    <div class="a-panel">
+      <h3>All Videos</h3>
+      <div id="vidList"><p style="color:var(--muted)">Loading…</p></div>
+    </div>
+  </div>
+
+  <!-- ══ PRESS ══ -->
+  <div class="admin-section" id="s-press">
+    <div class="a-panel">
+      <h3 id="pressFormTitle">Add Press Article</h3>
+      <div class="f-field"><label>Headline / Title</label><input id="pressTitle" placeholder="Article headline" /></div>
+      <div class="f-row">
+        <div class="f-field"><label>Publication name</label><input id="pressPub" placeholder="Dainik Jagran, Amar Ujala…" /></div>
+        <div class="f-field"><label>Date label</label><input id="pressDate" placeholder="Aug 2023" /></div>
+      </div>
+      <div class="f-field"><label>Article content / summary</label><textarea id="pressContent" rows="5" placeholder="Full article content or summary…"></textarea></div>
+      <div class="f-field"><label>Image URL (optional)</label><input id="pressImg" placeholder="/images/press-1.jpg or https://..." /></div>
+      <div class="f-field" style="max-width:160px"><label>Sort order</label><input id="pressSort" type="number" value="0" /></div>
+      <input id="pressId" type="hidden" />
+      <button class="btn-save" onclick="savePress()">💾 Save Article</button>
+      <button class="btn-clear" onclick="clearPress()">Clear</button>
+    </div>
+    <div class="a-panel">
+      <h3>All Press Articles</h3>
+      <div id="pressList"><p style="color:var(--muted)">Loading…</p></div>
     </div>
   </div>
 

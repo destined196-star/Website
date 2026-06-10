@@ -139,6 +139,14 @@ app.get('/api/gallery', (req, res) => {
   res.json(db.prepare('SELECT * FROM gallery ORDER BY sort_order, id').all());
 });
 
+app.get('/api/videos', (req, res) => {
+  res.json(db.prepare('SELECT * FROM videos ORDER BY sort_order, id').all());
+});
+
+app.get('/api/press', (req, res) => {
+  res.json(db.prepare('SELECT * FROM press_articles ORDER BY sort_order, id').all());
+});
+
 // Razorpay: create an order (needs RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in env)
 app.post('/api/donate/order', async (req, res) => {
   const keyId = process.env.RAZORPAY_KEY_ID, secret = process.env.RAZORPAY_KEY_SECRET;
@@ -372,6 +380,44 @@ app.delete('/api/admin/gallery/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// Videos admin
+app.post('/api/admin/videos', requireAuth, (req, res) => {
+  const { title, youtube_url, description, featured, sort_order } = req.body;
+  if (!title || !youtube_url) return res.status(400).json({ error: 'title and youtube_url required' });
+  const r = db.prepare('INSERT INTO videos (title,youtube_url,description,featured,sort_order) VALUES (?,?,?,?,?)')
+    .run(title, youtube_url, description || '', featured ? 1 : 0, Number(sort_order) || 0);
+  res.json({ id: r.lastInsertRowid });
+});
+app.put('/api/admin/videos/:id', requireAuth, (req, res) => {
+  const { title, youtube_url, description, featured, sort_order } = req.body;
+  db.prepare('UPDATE videos SET title=?,youtube_url=?,description=?,featured=?,sort_order=? WHERE id=?')
+    .run(title, youtube_url, description || '', featured ? 1 : 0, Number(sort_order) || 0, req.params.id);
+  res.json({ ok: true });
+});
+app.delete('/api/admin/videos/:id', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM videos WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+// Press articles admin
+app.post('/api/admin/press', requireAuth, (req, res) => {
+  const { title, publication, date_label, content, image, sort_order } = req.body;
+  if (!title) return res.status(400).json({ error: 'title required' });
+  const r = db.prepare('INSERT INTO press_articles (title,publication,date_label,content,image,sort_order) VALUES (?,?,?,?,?,?)')
+    .run(title, publication || '', date_label || '', content || '', image || '', Number(sort_order) || 0);
+  res.json({ id: r.lastInsertRowid });
+});
+app.put('/api/admin/press/:id', requireAuth, (req, res) => {
+  const { title, publication, date_label, content, image, sort_order } = req.body;
+  db.prepare('UPDATE press_articles SET title=?,publication=?,date_label=?,content=?,image=?,sort_order=? WHERE id=?')
+    .run(title, publication || '', date_label || '', content || '', image || '', Number(sort_order) || 0, req.params.id);
+  res.json({ ok: true });
+});
+app.delete('/api/admin/press/:id', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM press_articles WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 // Donations list
 app.get('/api/admin/donations', requireAuth, (req, res) => {
   res.json(db.prepare('SELECT * FROM donations ORDER BY id DESC').all());
@@ -431,9 +477,15 @@ app.get('/api/admin/backup', requireAuth, (req, res) => {
   } catch (e) { console.error('[backup]', e.message); res.status(500).json({ error: 'backup failed' }); }
 });
 
-// ---- Image upload (admin only): validated type + size, stored in public/uploads ----
-const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
+// ---- Image upload: persistent on Azure (/home/uploads), local in public/uploads ----
+const UPLOAD_DIR = process.env.WEBSITE_INSTANCE_ID
+  ? '/home/uploads'
+  : path.join(__dirname, 'public', 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// On Azure, public/uploads isn't the same dir, so serve /home/uploads explicitly
+if (process.env.WEBSITE_INSTANCE_ID) {
+  app.use('/uploads', express.static(UPLOAD_DIR));
+}
 const upload = multer({
   storage: multer.diskStorage({
     destination: UPLOAD_DIR,

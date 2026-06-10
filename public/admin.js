@@ -33,7 +33,7 @@ function toast(msg, type = 'ok') {
 }
 
 /* ── Tabs ────────────────────────────────────── */
-const TABS = ['dashboard', 'messages', 'events', 'posts', 'gallery', 'donations', 'settings'];
+const TABS = ['dashboard', 'messages', 'events', 'posts', 'gallery', 'videos', 'press', 'donations', 'settings'];
 
 function switchTab(name) {
   document.querySelectorAll('.admin-nav button').forEach(b =>
@@ -443,6 +443,153 @@ if (gFileEl) {
 }
 
 /* ══════════════════════════════════════════════
+   VIDEOS
+   ══════════════════════════════════════════════ */
+let videos = [], videoMap = {};
+
+async function loadVideos() {
+  videos = await api('/api/videos').catch(() => []);
+  videoMap = Object.fromEntries(videos.map(v => [v.id, v]));
+  const list = $('vidList');
+  if (!list) return;
+  list.innerHTML = videos.length
+    ? videos.map(v => {
+        const vid = (v.youtube_url || '').match(/[?&]v=([^&]+)/)?.[1] || '';
+        return `
+        <div class="a-item">
+          ${vid ? `<img src="https://i.ytimg.com/vi/${vid}/default.jpg" style="width:80px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0" />` : ''}
+          <div class="a-item-body">
+            <h4>${esc(v.title)} ${v.featured ? '<span style="background:var(--saffron);color:#fff;font-size:10px;padding:2px 7px;border-radius:3px;margin-left:6px">FEATURED</span>' : ''}</h4>
+            <div class="meta"><a href="${esc(v.youtube_url)}" target="_blank" style="color:var(--saffron-dark)">${esc(v.youtube_url)}</a></div>
+            ${v.description ? `<div class="meta">${esc(v.description)}</div>` : ''}
+            <div class="a-item-actions">
+              <button class="btn-edit vid-edit" data-id="${v.id}">✏️ Edit</button>
+              <button class="btn-del vid-del" data-id="${v.id}">🗑 Delete</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<p style="color:var(--muted)">No videos yet. Add one above.</p>';
+
+  list.querySelectorAll('.vid-edit').forEach(btn =>
+    btn.addEventListener('click', () => fillVideo(videoMap[btn.dataset.id]))
+  );
+  list.querySelectorAll('.vid-del').forEach(btn =>
+    btn.addEventListener('click', () => delVideo(Number(btn.dataset.id)))
+  );
+}
+
+function fillVideo(v) {
+  if (!v) return;
+  $('vidId').value = v.id;
+  $('vidTitle').value = v.title || '';
+  $('vidUrl').value = v.youtube_url || '';
+  $('vidDesc').value = v.description || '';
+  $('vidSort').value = v.sort_order || 0;
+  $('vidFeatured').value = v.featured ? '1' : '0';
+  $('vidFormTitle').textContent = 'Edit Video';
+  switchTab('videos');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearVideo() {
+  ['vidId', 'vidTitle', 'vidUrl', 'vidDesc'].forEach(i => $(i).value = '');
+  $('vidSort').value = 0; $('vidFeatured').value = '0';
+  $('vidFormTitle').textContent = 'Add New Video';
+}
+
+async function saveVideo() {
+  const id = $('vidId').value;
+  if (!$('vidTitle').value.trim()) { toast('Title required', 'err'); return; }
+  if (!$('vidUrl').value.trim()) { toast('YouTube URL required', 'err'); return; }
+  await api('/api/admin/videos' + (id ? '/' + id : ''), {
+    method: id ? 'PUT' : 'POST',
+    body: JSON.stringify({ title: $('vidTitle').value, youtube_url: $('vidUrl').value, description: $('vidDesc').value, featured: $('vidFeatured').value, sort_order: Number($('vidSort').value) || 0 })
+  });
+  toast(id ? 'Video updated ✓' : 'Video added ✓');
+  clearVideo(); await loadVideos();
+}
+
+async function delVideo(id) {
+  if (!confirm('Delete this video?')) return;
+  await api('/api/admin/videos/' + id, { method: 'DELETE' });
+  toast('Video deleted'); await loadVideos();
+}
+
+/* ══════════════════════════════════════════════
+   PRESS ARTICLES
+   ══════════════════════════════════════════════ */
+let pressArr = [], pressMap = {};
+
+async function loadPress() {
+  pressArr = await api('/api/press').catch(() => []);
+  pressMap = Object.fromEntries(pressArr.map(p => [p.id, p]));
+  const list = $('pressList');
+  if (!list) return;
+  list.innerHTML = pressArr.length
+    ? pressArr.map(p => `
+      <div class="a-item">
+        ${p.image ? `<img src="${esc(p.image)}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'" />` : ''}
+        <div class="a-item-body">
+          <h4>${esc(p.title)}</h4>
+          <div class="meta">📰 ${esc(p.publication || '–')} &nbsp;·&nbsp; ${esc(p.date_label || '')}</div>
+          <p style="font-size:13px;color:var(--muted);margin:4px 0 0;line-height:1.5">
+            ${esc((p.content || '').substring(0, 120))}${(p.content || '').length > 120 ? '…' : ''}
+          </p>
+          <div class="a-item-actions">
+            <button class="btn-edit pr-edit" data-id="${p.id}">✏️ Edit</button>
+            <button class="btn-del pr-del" data-id="${p.id}">🗑 Delete</button>
+          </div>
+        </div>
+      </div>`).join('')
+    : '<p style="color:var(--muted)">No press articles yet.</p>';
+
+  list.querySelectorAll('.pr-edit').forEach(btn =>
+    btn.addEventListener('click', () => fillPress(pressMap[btn.dataset.id]))
+  );
+  list.querySelectorAll('.pr-del').forEach(btn =>
+    btn.addEventListener('click', () => delPress(Number(btn.dataset.id)))
+  );
+}
+
+function fillPress(p) {
+  if (!p) return;
+  $('pressId').value = p.id;
+  $('pressTitle').value = p.title || '';
+  $('pressPub').value = p.publication || '';
+  $('pressDate').value = p.date_label || '';
+  $('pressContent').value = p.content || '';
+  $('pressImg').value = p.image || '';
+  $('pressSort').value = p.sort_order || 0;
+  $('pressFormTitle').textContent = 'Edit Press Article';
+  switchTab('press');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearPress() {
+  ['pressId', 'pressTitle', 'pressPub', 'pressDate', 'pressContent', 'pressImg'].forEach(i => $(i).value = '');
+  $('pressSort').value = 0;
+  $('pressFormTitle').textContent = 'Add Press Article';
+}
+
+async function savePress() {
+  const id = $('pressId').value;
+  if (!$('pressTitle').value.trim()) { toast('Title required', 'err'); return; }
+  await api('/api/admin/press' + (id ? '/' + id : ''), {
+    method: id ? 'PUT' : 'POST',
+    body: JSON.stringify({ title: $('pressTitle').value, publication: $('pressPub').value, date_label: $('pressDate').value, content: $('pressContent').value, image: $('pressImg').value, sort_order: Number($('pressSort').value) || 0 })
+  });
+  toast(id ? 'Article updated ✓' : 'Article added ✓');
+  clearPress(); await loadPress();
+}
+
+async function delPress(id) {
+  if (!confirm('Delete this article?')) return;
+  await api('/api/admin/press/' + id, { method: 'DELETE' });
+  toast('Article deleted'); await loadPress();
+}
+
+/* ══════════════════════════════════════════════
    DONATIONS
    ══════════════════════════════════════════════ */
 async function loadDonations() {
@@ -500,7 +647,7 @@ function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
    INIT
    ══════════════════════════════════════════════ */
 async function init() {
-  await Promise.all([loadMessages(), loadGallery(), loadEvents(), loadPosts()]);
+  await Promise.all([loadMessages(), loadGallery(), loadEvents(), loadPosts(), loadVideos(), loadPress()]);
   buildCharts();
   loadDonations();
   loadSettings();

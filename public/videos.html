@@ -70,12 +70,7 @@
       <p>Devotional videos, bhajans &amp; thoughts — straight from the channel</p>
     </div>
     <div class="featured-thumb">
-      <a class="yt-thumb" href="https://www.youtube.com/watch?v=zZTmZzfKUEo" target="_blank" rel="noopener">
-        <img src="https://i.ytimg.com/vi/zZTmZzfKUEo/maxresdefault.jpg"
-             onerror="this.src='https://i.ytimg.com/vi/zZTmZzfKUEo/hqdefault.jpg'"
-             alt="Featured video — Devi Murlika Gaur" />
-        <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
-      </a>
+      <div id="featuredVideo"></div>
     </div>
     <p style="text-align:center;margin-top:18px;">
       <a href="https://www.youtube.com/@devimurlikagaur" target="_blank" rel="noopener" class="btn">Visit Full Channel</a>
@@ -89,49 +84,8 @@
       <h2>More Videos</h2>
       <p>Click any thumbnail to watch on YouTube</p>
     </div>
-    <div class="video-grid">
-      <div class="video-card">
-        <a class="yt-thumb" href="https://www.youtube.com/watch?v=0XgFXsRFWS4" target="_blank" rel="noopener">
-          <img src="https://i.ytimg.com/vi/0XgFXsRFWS4/hqdefault.jpg" alt="Devotional Thoughts" />
-          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
-        </a>
-        <div class="vc-body"><h4>Devotional Thoughts</h4></div>
-      </div>
-      <div class="video-card">
-        <a class="yt-thumb" href="https://www.youtube.com/watch?v=AhANlTzF__s" target="_blank" rel="noopener">
-          <img src="https://i.ytimg.com/vi/AhANlTzF__s/hqdefault.jpg" alt="Bhajan & Kirtan" />
-          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
-        </a>
-        <div class="vc-body"><h4>Bhajan &amp; Kirtan</h4></div>
-      </div>
-      <div class="video-card">
-        <a class="yt-thumb" href="https://www.youtube.com/watch?v=SZ0NtF4HoJ8" target="_blank" rel="noopener">
-          <img src="https://i.ytimg.com/vi/SZ0NtF4HoJ8/hqdefault.jpg" alt="Spiritual Wisdom" />
-          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
-        </a>
-        <div class="vc-body"><h4>Spiritual Wisdom</h4></div>
-      </div>
-      <div class="video-card">
-        <a class="yt-thumb" href="https://www.youtube.com/watch?v=DiKizDW_Tbk" target="_blank" rel="noopener">
-          <img src="https://i.ytimg.com/vi/DiKizDW_Tbk/hqdefault.jpg" alt="Satsang" />
-          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
-        </a>
-        <div class="vc-body"><h4>Satsang</h4></div>
-      </div>
-      <div class="video-card">
-        <a class="yt-thumb" href="https://www.youtube.com/watch?v=FYGLo650Zbw" target="_blank" rel="noopener">
-          <img src="https://i.ytimg.com/vi/FYGLo650Zbw/hqdefault.jpg" alt="Kirtan" />
-          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
-        </a>
-        <div class="vc-body"><h4>Kirtan</h4></div>
-      </div>
-      <div class="video-card">
-        <a class="yt-thumb" href="https://www.youtube.com/watch?v=N_tzLSrzAkQ" target="_blank" rel="noopener">
-          <img src="https://i.ytimg.com/vi/N_tzLSrzAkQ/hqdefault.jpg" alt="Bhakti" />
-          <span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>
-        </a>
-        <div class="vc-body"><h4>Bhakti</h4></div>
-      </div>
+    <div class="video-grid" id="videoGrid">
+      <!-- loaded from API -->
     </div>
   </div>
 </section>
@@ -184,5 +138,42 @@
 
 <script src="public.js"></script>
 <script src="script.js"></script>
+<script>
+(function() {
+  var PLAY = '<span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>';
+  function vidId(url) { var m = (url||'').match(/[?&]v=([^&]+)/); return m ? m[1] : ''; }
+  function esc(s) { return String(s||'').replace(/[&<>"']/g, function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);}); }
+
+  fetch('/api/videos').then(function(r){return r.json();}).then(function(vids) {
+    var featured = vids.find(function(v){return v.featured;}) || vids[0];
+    var rest = vids.filter(function(v){return !v.featured;});
+
+    // Featured
+    var featEl = document.getElementById('featuredVideo');
+    if (featEl && featured) {
+      var id = vidId(featured.youtube_url);
+      featEl.innerHTML = '<a class="yt-thumb featured-thumb" href="'+esc(featured.youtube_url)+'" target="_blank" rel="noopener">'
+        + '<img src="https://i.ytimg.com/vi/'+id+'/maxresdefault.jpg" onerror="this.src=\'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg\'" alt="'+esc(featured.title)+'" />'
+        + PLAY + '</a>'
+        + '<p style="text-align:center;margin-top:12px;font-weight:600;color:var(--maroon)">'+esc(featured.title)+'</p>';
+    }
+
+    // Grid
+    var gridEl = document.getElementById('videoGrid');
+    if (gridEl && rest.length) {
+      gridEl.innerHTML = rest.map(function(v) {
+        var id = vidId(v.youtube_url);
+        return '<div class="video-card"><a class="yt-thumb" href="'+esc(v.youtube_url)+'" target="_blank" rel="noopener">'
+          + '<img src="https://i.ytimg.com/vi/'+id+'/hqdefault.jpg" alt="'+esc(v.title)+'" loading="lazy" />'
+          + PLAY + '</a><div class="vc-body"><h4>'+esc(v.title)+'</h4>'
+          + (v.description ? '<p>'+esc(v.description)+'</p>' : '')
+          + '</div></div>';
+      }).join('');
+    } else if (gridEl) {
+      gridEl.innerHTML = '';
+    }
+  }).catch(function() {});
+})();
+</script>
 </body>
 </html>
