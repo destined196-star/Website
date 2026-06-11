@@ -580,11 +580,11 @@ const uploadBulk = multer({
       cb(null, crypto.randomBytes(12).toString('hex') + ext);
     }
   }),
-  limits: { fileSize: 50 * 1024 * 1024, files: 20 },
+  limits: { fileSize: 50 * 1024 * 1024, files: 8 },
   fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
 });
 app.post('/api/admin/upload-bulk', requireAuth, (req, res) => {
-  uploadBulk.array('images', 20)(req, res, err => {
+  uploadBulk.array('images', 8)(req, res, err => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.files || !req.files.length) return res.status(400).json({ error: 'No valid images received' });
     const urls = req.files.map(f => '/uploads/' + f.filename);

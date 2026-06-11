@@ -515,7 +515,7 @@ let bulkFiles = [];
 const gBulkEl = $('gBulkFiles');
 if (gBulkEl) {
   gBulkEl.addEventListener('change', function () {
-    bulkFiles = Array.from(this.files).slice(0, 20);
+    bulkFiles = Array.from(this.files).slice(0, 8);
     const preview = $('bulkPreview');
     const thumbGrid = $('bulkThumbGrid');
     const countEl = $('bulkCount');
