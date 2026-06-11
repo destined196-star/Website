@@ -44,7 +44,6 @@ function renderPaymentMethods(s) {
       + '<div class="qr-wrap"><img id="upiQr" alt="UPI QR Code" width="172" height="172" src="' + qrUrl + '" '
       + 'onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=\'' + qrFallback + '\'}" /></div>'
       + '<div class="qr-name">' + esc(UPI_NAME) + '</div>'
-      + '<div class="bhim-badge">BHIM UPI</div>'
       + '</div></div>';
 
     // Amount selector
