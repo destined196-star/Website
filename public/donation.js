@@ -5,10 +5,9 @@ let upiAmt = 0;
 let UPI_ID = '';
 let UPI_NAME = '';
 
-function buildUpiUrl(amt) {
+function buildUpiUrl() {
   return 'upi://pay?pa=' + encodeURIComponent(UPI_ID)
     + '&pn=' + encodeURIComponent(UPI_NAME)
-    + '&am=' + encodeURIComponent(amt)
     + '&cu=INR&tn=Donation';
 }
 
@@ -48,10 +47,7 @@ function renderPaymentMethods(s) {
 
     // Amount selector
     html += '<div class="amt-section">'
-      + '<h4>Enter amount, then tap Pay</h4>'
-      + '<div class="custom-amt-wrap"><span class="rupee-sym">₹</span>'
-      + '<input type="number" id="customAmt" placeholder="Enter amount" min="1" max="100000" /></div>'
-      + '<a id="upiPayBtn" href="' + buildUpiUrl(0) + '" class="btn" style="width:100%;display:block;text-align:center">💳 Pay with UPI App</a>'
+      + '<a id="upiPayBtn" href="' + buildUpiUrl() + '" class="btn" style="width:100%;display:block;text-align:center">💳 Pay with UPI App</a>'
       + '</div>';
   }
 
@@ -110,44 +106,7 @@ function payRow(icon, label, value, href) {
     + '</div>';
 }
 
-function refreshPayBtn() {
-  var btn = document.getElementById('upiPayBtn');
-  if (btn) btn.href = buildUpiUrl(upiAmt);
-}
-
 function wireUpi() {
-  // Amount preset buttons
-  // Custom amount
-  function applyCustomAmt() {
-    var input = document.getElementById('customAmt');
-    var val = parseInt(input.value, 10);
-    if (!val || val < 1) return;
-    upiAmt = val;
-    refreshPayBtn();
-  }
-  var customInput = document.getElementById('customAmt');
-  if (customInput) {
-    customInput.addEventListener('input', applyCustomAmt);
-    customInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyCustomAmt(); });
-  }
-
-  // Update UPI link with entered amount before navigating
-  var payBtn = document.getElementById('upiPayBtn');
-  if (payBtn) {
-    payBtn.addEventListener('click', function (e) {
-      var ci = document.getElementById('customAmt');
-      var v = ci ? parseInt(ci.value, 10) : 0;
-      if (v > 0) { upiAmt = v; }
-      if (!upiAmt || upiAmt < 1) {
-        e.preventDefault();
-        if (ci) ci.focus();
-        return;
-      }
-      refreshPayBtn();
-      // Let the href navigate (UPI deep link opens payment app)
-    }, true);
-  }
-
   // Copy UPI ID
   var copyBtn = document.getElementById('copyBtn');
   if (copyBtn) {
