@@ -5,6 +5,14 @@
 const $ = id => document.getElementById(id);
 const API_BASE = location.protocol === 'file:' ? 'http://localhost:3000' : '';
 
+// Format UTC DB timestamp → IST (India Standard Time, UTC+5:30)
+function fmtIST(utcStr) {
+  if (!utcStr) return '';
+  // SQLite stores as "YYYY-MM-DD HH:MM:SS" without Z — treat as UTC
+  const d = new Date(utcStr.replace(' ', 'T') + 'Z');
+  return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
 async function api(url, opts = {}) {
   const headers = { 'X-Requested-With': 'fetch' };
   if (!(opts.body instanceof FormData)) {
@@ -198,7 +206,7 @@ async function loadMessages() {
     ? msgs.map(m => `
       <div class="msg-card">
         <div class="mc-who">${esc(m.name)} <span style="font-weight:400;color:var(--muted)">&lt;${esc(m.email)}&gt;</span></div>
-        <div class="mc-meta">📞 ${esc(m.phone) || '–'} &nbsp;·&nbsp; 🕒 ${esc(m.created_at || '')}</div>
+        <div class="mc-meta">📞 ${esc(m.phone) || '–'} &nbsp;·&nbsp; 🕒 ${fmtIST(m.created_at)}</div>
         <div class="mc-body">${esc(m.message)}</div>
         <div class="admin-item-bar">
           <button class="btn-del msg-del" data-id="${m.id}">🗑 Delete</button>
@@ -839,7 +847,7 @@ async function loadDonations() {
         <div class="mc-who">₹${esc(String(d.amount))} <span style="font-weight:400;color:var(--muted)">via ${esc(d.method || '–')}</span></div>
         <div class="mc-meta">
           ${esc(d.name) || 'Anonymous'}${d.email ? ` &lt;${esc(d.email)}&gt;` : ''}
-          &nbsp;·&nbsp; ${esc(d.created_at || '')}
+          &nbsp;·&nbsp; ${fmtIST(d.created_at)}
         </div>
         ${d.reference ? `<div class="mc-body">Ref: ${esc(d.reference)}</div>` : ''}
       </div>`).join('')
