@@ -73,12 +73,29 @@
   if (form) {
     form.addEventListener('submit', async ev => {
       ev.preventDefault();
+      const note = document.getElementById('formMsg');
+      const nameVal = form.name.value.trim();
+      const emailVal = form.email.value.trim();
+      const msgVal = form.message.value.trim();
+      // Basic validation — show inline styled error instead of browser popup
+      if (!nameVal) {
+        note.style.display = 'block'; note.style.color = '#c0563c';
+        note.textContent = 'Please enter your name.'; return;
+      }
+      if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        note.style.display = 'block'; note.style.color = '#c0563c';
+        note.textContent = 'Please enter a valid email address.'; return;
+      }
+      if (!msgVal) {
+        note.style.display = 'block'; note.style.color = '#c0563c';
+        note.textContent = 'Please enter a message.'; return;
+      }
+      note.style.display = 'none';
       const payload = {
-        name: form.name.value, email: form.email.value, phone: form.phone?.value || '',
-        subject: form.subject?.value || '', message: form.message.value,
+        name: nameVal, email: emailVal, phone: form.phone?.value || '',
+        subject: form.subject?.value || '', message: msgVal,
         company: form.company?.value || ''   // honeypot
       };
-      const note = document.getElementById('formMsg');
       try {
         const r = await post('/api/contact', payload);
         if (!r.ok) throw new Error();
