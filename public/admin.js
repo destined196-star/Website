@@ -464,8 +464,8 @@ async function loadGallery() {
           method: 'PUT',
           body: JSON.stringify({ image: g.image, caption: g.caption || '', sort_order: val })
         });
-        galMap[id].sort_order = val;
         toast('Order updated ✓');
+        await loadGallery();
       } catch (e) { toast('Save failed', 'err'); }
     };
     input.addEventListener('blur', save);
