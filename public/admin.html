@@ -437,17 +437,16 @@
   <div class="admin-section" id="s-gallery">
     <div class="a-tab-header">
       <h2>🖼️ Gallery</h2>
-      <button class="btn-add" onclick="toggleForm('galBulk')">📤 Bulk Upload (up to 20)</button>
-      <button class="btn-add" onclick="toggleForm('galForm')">+ Add Single Photo</button>
+      <button class="btn-add" onclick="toggleForm('galUpload')">📷 Upload Photos</button>
     </div>
 
-    <div class="a-form-panel" id="galBulk" style="display:none">
-      <h3>📤 Bulk Upload — Select up to 20 Images</h3>
+    <div class="a-form-panel" id="galUpload" style="display:none">
+      <h3>📷 Upload Photos — select one or many at once</h3>
       <div class="upload-zone" id="bulkUploadZone" onclick="document.getElementById('gBulkFiles').click()">
         <input type="file" id="gBulkFiles" accept="image/jpeg,image/png,image/webp,image/gif" multiple />
-        <span class="uz-icon">📷📷📷</span>
-        <p class="uz-text">Click to select multiple photos from your device<br>
-          <small>JPG · PNG · WebP · GIF &nbsp;|&nbsp; Up to 20 at once</small>
+        <span class="uz-icon">📷</span>
+        <p class="uz-text">Click to select photos from your device<br>
+          <small>JPG · PNG · WebP · GIF &nbsp;|&nbsp; Select one or multiple at once</small>
         </p>
       </div>
       <div id="bulkPreview" style="display:none;margin-top:16px">
@@ -457,7 +456,7 @@
         </div>
         <div id="bulkThumbGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:14px"></div>
         <div class="f-field" style="max-width:400px;margin-bottom:14px">
-          <label>Default caption for all (optional)</label>
+          <label>Caption for all (optional)</label>
           <input id="gBulkCaption" placeholder="e.g. Satsang Photos 2025" />
         </div>
         <div id="bulkProgress" style="display:none;margin-bottom:14px">
@@ -466,41 +465,15 @@
           </div>
           <small id="bulkStatus" style="color:var(--muted)">Uploading…</small>
         </div>
-        <button class="btn-save" id="bulkUploadBtn" onclick="doBulkUpload()">📤 Upload All</button>
+        <button class="btn-save" id="bulkUploadBtn" onclick="doBulkUpload()">📤 Upload</button>
       </div>
-    </div>
-
-    <div class="a-form-panel" id="galForm" style="display:none">
-      <h3>Upload Photo from Device</h3>
-      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('gFile').click()">
-        <input type="file" id="gFile" accept="image/jpeg,image/png,image/webp,image/gif" />
-        <span class="uz-icon">📷</span>
-        <p class="uz-text">Click here to choose a photo from your device<br>
-          <small>JPG · PNG · WebP · GIF</small>
-        </p>
-        <div class="uz-status" id="gUpMsg"></div>
-      </div>
-      <div style="margin-top:20px">
-        <div class="f-row">
-          <div class="f-field">
-            <label>Image URL <small style="font-weight:400;text-transform:none">(auto-filled after upload, or paste URL)</small></label>
-            <input id="gImg" placeholder="/uploads/photo.jpg  or  https://..." />
-          </div>
-          <div class="f-field">
-            <label>Caption (optional)</label>
-            <input id="gCap" placeholder="A short description" />
-          </div>
-        </div>
-        <div class="f-field" style="max-width:160px">
-          <label>Sort order</label>
-          <input id="gSort" type="number" value="0" />
-        </div>
-        <input id="gId" type="hidden" />
-        <div class="f-actions">
-          <button class="btn-save" onclick="saveGallery()">➕ Save Image</button>
-          <button class="btn-clear" onclick="cancelForm('galForm'); clearGallery()">✕ Cancel</button>
-        </div>
-      </div>
+      <!-- hidden single-upload fields kept for edit flow -->
+      <input id="gFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" />
+      <input id="gUpMsg" type="hidden" />
+      <input id="gImg" type="hidden" />
+      <input id="gCap" type="hidden" />
+      <input id="gSort" type="hidden" value="0" />
+      <input id="gId" type="hidden" />
     </div>
 
     <div class="a-panel">

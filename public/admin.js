@@ -467,7 +467,7 @@ function fillGallery(g) {
   $('gImg').value = g.image || '';
   $('gCap').value = g.caption || '';
   $('gSort').value = g.sort_order || 0;
-  showForm('galForm');
+  showForm('galUpload');
   switchTab('gallery');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -493,7 +493,7 @@ async function saveGallery() {
     });
     toast(id ? 'Image updated ✓' : 'Image added ✓');
     clearGallery();
-    cancelForm('galForm');
+    cancelForm('galUpload');
     await loadGallery();
     buildCharts();
   } catch (e) { toast('Error: ' + e.message, 'err'); }
@@ -600,7 +600,7 @@ async function doBulkUpload() {
   // Auto-clear after 2s
   setTimeout(() => {
     clearBulkUpload();
-    cancelForm('galBulk');
+    cancelForm('galUpload');
   }, 2000);
 }
 
