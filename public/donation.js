@@ -1,7 +1,7 @@
 // Donation page — fully dynamic, renders only payment methods configured in admin Settings
 // Each section appears only when its key field is filled
 
-let upiAmt = 251;
+let upiAmt = 0;
 let UPI_ID = '';
 let UPI_NAME = '';
 
@@ -48,16 +48,10 @@ function renderPaymentMethods(s) {
 
     // Amount selector
     html += '<div class="amt-section">'
-      + '<h4>Select or enter amount, then tap Pay</h4>'
-      + '<div class="amount-row" id="upiAmtRow">'
-      + '<button type="button" data-amt="101">₹101</button>'
-      + '<button type="button" data-amt="251" class="sel">₹251</button>'
-      + '<button type="button" data-amt="501">₹501</button>'
-      + '<button type="button" data-amt="1100">₹1100</button>'
-      + '</div>'
+      + '<h4>Enter amount, then tap Pay</h4>'
       + '<div class="custom-amt-wrap"><span class="rupee-sym">₹</span>'
-      + '<input type="number" id="customAmt" placeholder="Enter custom amount" min="1" max="100000" /></div>'
-      + '<a id="upiPayBtn" href="' + buildUpiUrl(251) + '" class="btn" style="width:100%;display:block;text-align:center">💳 Pay with UPI App</a>'
+      + '<input type="number" id="customAmt" placeholder="Enter amount" min="1" max="100000" /></div>'
+      + '<a id="upiPayBtn" href="' + buildUpiUrl(0) + '" class="btn" style="width:100%;display:block;text-align:center">💳 Pay with UPI App</a>'
       + '</div>';
   }
 
@@ -123,23 +117,11 @@ function refreshPayBtn() {
 
 function wireUpi() {
   // Amount preset buttons
-  document.querySelectorAll('#upiAmtRow button').forEach(function (b) {
-    b.addEventListener('click', function () {
-      document.querySelectorAll('#upiAmtRow button').forEach(function (x) { x.classList.remove('sel'); });
-      this.classList.add('sel');
-      upiAmt = Number(this.dataset.amt);
-      var ci = document.getElementById('customAmt');
-      if (ci) ci.value = '';
-      refreshPayBtn();
-    });
-  });
-
   // Custom amount
   function applyCustomAmt() {
     var input = document.getElementById('customAmt');
     var val = parseInt(input.value, 10);
     if (!val || val < 1) return;
-    document.querySelectorAll('#upiAmtRow button').forEach(function (x) { x.classList.remove('sel'); });
     upiAmt = val;
     refreshPayBtn();
   }
