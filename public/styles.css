@@ -422,8 +422,10 @@ nav ul li.has-sub { position: relative; }
 
 /* Responsive */
 @media (max-width: 900px) {
-  nav ul { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--saffron); flex-direction: column; padding: 6px 0; box-shadow: 0 4px 10px rgba(0,0,0,.2); }
-  nav.open ul { display: flex; }
+  nav > ul { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--saffron); flex-direction: column; padding: 6px 0; box-shadow: 0 4px 10px rgba(0,0,0,.2); }
+  nav.open > ul { display: flex; }
+  nav .sub-menu { display: none !important; }
+  nav .has-sub.open .sub-menu { display: flex !important; }
   nav ul li { border-left: 0; border-bottom: 1px solid rgba(255,255,255,.2); }
   nav a { padding: 12px 20px; border-left: 0; }
   .menu-toggle { display: block; }
