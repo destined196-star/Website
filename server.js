@@ -36,7 +36,8 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'https://picsum.photos', 'https://*.picsum.photos',
-        'https://i.ytimg.com', 'https://quickchart.io', 'https://api.qrserver.com'],
+        'https://i.ytimg.com', 'https://quickchart.io', 'https://api.qrserver.com',
+        'https://*.googleusercontent.com', 'https://*.ggpht.com'],
       frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.google.com'],
       connectSrc: ["'self'"],
       scriptSrcAttr: ["'unsafe-inline'"],   // allow onclick/onerror attrs in HTML
@@ -126,6 +127,53 @@ function requireAuth(req, res, next) { return next(); }
 app.get('/api/settings', (req, res) => {
   const rows = db.prepare('SELECT key, value FROM settings').all();
   res.json(Object.fromEntries(rows.map(r => [r.key, r.value])));
+});
+
+// ---- YouTube comments (cached 30 min) ----
+let ytCache = { comments: [], at: 0 };
+app.get('/api/yt-comments', async (req, res) => {
+  const key = process.env.YOUTUBE_API_KEY;
+  if (!key) return res.json([]);
+  if (ytCache.comments.length && Date.now() - ytCache.at < 30 * 60 * 1000)
+    return res.json(ytCache.comments);
+  try {
+    // Pull video IDs from DB (featured first)
+    const vids = db.prepare('SELECT youtube_url FROM videos ORDER BY featured DESC, sort_order LIMIT 10').all();
+    const videoIds = vids.map(v => {
+      const m = String(v.youtube_url || '').match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }).filter(Boolean).slice(0, 6);
+    if (!videoIds.length) return res.json([]);
+
+    const all = [];
+    for (const vid of videoIds) {
+      try {
+        const r = await fetch(
+          `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${vid}&key=${encodeURIComponent(key)}&maxResults=20&order=relevance`
+        );
+        if (!r.ok) continue;
+        const data = await r.json();
+        for (const item of (data.items || [])) {
+          const s = item.snippet.topLevelComment.snippet;
+          const text = (s.textDisplay || '').replace(/<[^>]+>/g, '').trim();
+          if (text.length < 60) continue;  // skip short emoji-only comments
+          all.push({
+            author: s.authorDisplayName || 'YouTube User',
+            text,
+            avatar: s.authorProfileImageUrl || '',
+            likes: Number(s.likeCount) || 0,
+            videoId: vid
+          });
+        }
+      } catch (_) {}
+    }
+    all.sort((a, b) => b.likes - a.likes);
+    ytCache = { comments: all.slice(0, 9), at: Date.now() };
+    res.json(ytCache.comments);
+  } catch (e) {
+    console.error('[yt-comments]', e.message);
+    res.json([]);
+  }
 });
 
 app.get('/api/events', (req, res) => {

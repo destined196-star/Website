@@ -409,6 +409,15 @@ nav ul li.has-sub { position: relative; }
 }
 .testi-name { font-weight: 700; color: var(--maroon); font-size: 14px; }
 .testi-role { color: var(--muted); font-size: 13px; }
+.testi-avatar-img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.testi-yt-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: #fff; background: #FF0000;
+  padding: 2px 8px; border-radius: 3px; font-weight: 700;
+  letter-spacing: .4px; text-decoration: none; margin-top: 4px;
+}
+.testi-yt-badge:hover { background: #cc0000; color: #fff; }
+.testi-likes { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
 /* ── About Stats Row ── */
 .about-stats {

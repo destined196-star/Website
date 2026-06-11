@@ -51,6 +51,38 @@
     } catch (e) {}
   }
 
+  // ---- YouTube live comments ----
+  async function loadYtComments() {
+    const wrap = document.getElementById('yt-comments');
+    if (!wrap) return;
+    try {
+      const comments = await get('/api/yt-comments');
+      if (!comments.length) {
+        wrap.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">Comments loading — check back soon.</p>';
+        return;
+      }
+      wrap.innerHTML = comments.map(c => `
+        <div class="testi-card">
+          <p class="testi-text">${esc(c.text.length > 300 ? c.text.slice(0, 297) + '…' : c.text)}</p>
+          <div class="testi-author">
+            ${c.avatar
+              ? `<img class="testi-avatar-img" src="${esc(c.avatar)}" alt="${esc(c.author)}" loading="lazy" />`
+              : `<div class="testi-avatar">🙏</div>`}
+            <div>
+              <div class="testi-name">${esc(c.author)}</div>
+              ${c.likes > 0 ? `<div class="testi-likes">👍 ${c.likes.toLocaleString('en-IN')}</div>` : ''}
+              <a class="testi-yt-badge" href="https://www.youtube.com/watch?v=${esc(c.videoId)}" target="_blank" rel="noopener">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.95C5.12 20 12 20 12 20s6.88 0 8.59-.47a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon fill="currentColor" points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>
+                YouTube
+              </a>
+            </div>
+          </div>
+        </div>`).join('');
+    } catch (_) {}
+  }
+  loadYtComments();
+  setInterval(loadYtComments, 10 * 60 * 1000); // refresh every 10 min
+
   // ---- Blog/posts container ----
   const blogWrap = document.getElementById('blog-dynamic');
   if (blogWrap) {
