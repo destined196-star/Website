@@ -94,7 +94,7 @@
       const payload = {
         name: nameVal, email: emailVal, phone: form.phone?.value || '',
         subject: form.subject?.value || '', message: msgVal,
-        company: form.company?.value || ''   // honeypot
+        company: form.hp_field?.value || ''   // honeypot
       };
       try {
         const r = await post('/api/contact', payload);

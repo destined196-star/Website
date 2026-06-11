@@ -153,8 +153,8 @@
 
     <div class="msg-inner">
       <form class="msg-form" id="contactForm" novalidate>
-        <!-- Honeypot -->
-        <input type="text" name="company" id="company" tabindex="-1" autocomplete="off"
+        <!-- Honeypot — random name avoids browser autofill -->
+        <input type="text" name="hp_field" id="hp_field" tabindex="-1" autocomplete="off"
           style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true" />
         <input id="name" name="name" type="text" placeholder="Name (required)" required />
         <input id="email" name="email" type="email" placeholder="Email (required)" required />
