@@ -131,19 +131,20 @@ function wireUpi() {
     customInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyCustomAmt(); });
   }
 
-  // Desktop warning on Pay click
+  // Update UPI link with entered amount before navigating
   var payBtn = document.getElementById('upiPayBtn');
   if (payBtn) {
     payBtn.addEventListener('click', function (e) {
       var ci = document.getElementById('customAmt');
-      if (ci && ci.value) {
-        var v = parseInt(ci.value, 10);
-        if (v > 0) { upiAmt = v; refreshPayBtn(); }
-      }
-      if (!/android|iphone|ipad|mobile/i.test(navigator.userAgent)) {
+      var v = ci ? parseInt(ci.value, 10) : 0;
+      if (v > 0) { upiAmt = v; }
+      if (!upiAmt || upiAmt < 1) {
         e.preventDefault();
-        alert('On desktop: scan the QR code with GPay / PhonePe / Paytm on your phone.');
+        if (ci) ci.focus();
+        return;
       }
+      refreshPayBtn();
+      // Let the href navigate (UPI deep link opens payment app)
     }, true);
   }
 
