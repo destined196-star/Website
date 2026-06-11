@@ -569,9 +569,27 @@ function clearBulkUpload() {
   const pr = $('bulkProgress'); if (pr) pr.style.display = 'none';
 }
 
+async function autoNumberGallery() {
+  if (!gallery.length) return;
+  try {
+    for (let i = 0; i < gallery.length; i++) {
+      const g = gallery[i];
+      await api('/api/admin/gallery/' + g.id, {
+        method: 'PUT',
+        body: JSON.stringify({ image: g.image, caption: g.caption || '', sort_order: i + 1 })
+      });
+    }
+    toast('Auto-numbered ✓');
+    await loadGallery();
+  } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
 async function doBulkUpload() {
   if (!bulkFiles.length) { toast('Select images first', 'err'); return; }
   const caption = ($('gBulkCaption') || {}).value || '';
+  // Start sort_order after current max
+  const maxOrder = gallery.reduce((m, g) => Math.max(m, g.sort_order || 0), 0);
+  let nextOrder = maxOrder + 1;
   const progressEl = $('bulkProgress');
   const barEl = $('bulkBar');
   const statusEl = $('bulkStatus');
@@ -605,7 +623,7 @@ async function doBulkUpload() {
         // Save to gallery DB
         await api('/api/admin/gallery', {
           method: 'POST',
-          body: JSON.stringify({ image: data.url, caption, sort_order: 0 })
+          body: JSON.stringify({ image: data.url, caption, sort_order: nextOrder++ })
         });
         uploaded++;
       } catch (e) {
