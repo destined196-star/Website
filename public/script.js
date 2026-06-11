@@ -27,3 +27,24 @@
 document.querySelector('.menu-toggle')?.addEventListener('click', () => {
   document.querySelector('nav').classList.toggle('open');
 });
+
+// Nav sub-menu +/- toggle
+document.querySelectorAll('.sub-toggle').forEach(function (btn) {
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var li = btn.closest('.has-sub');
+    var isOpen = li.classList.contains('open');
+    // Close siblings
+    var siblings = li.closest('ul').querySelectorAll('.has-sub.open');
+    siblings.forEach(function (s) {
+      if (s !== li) {
+        s.classList.remove('open');
+        var sb = s.querySelector('.sub-toggle');
+        if (sb) sb.textContent = '+';
+      }
+    });
+    li.classList.toggle('open', !isOpen);
+    btn.textContent = isOpen ? '+' : '−';
+  });
+});
