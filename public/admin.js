@@ -440,12 +440,38 @@ async function loadGallery() {
     <div class="g-cell">
       <img src="${esc(g.image)}" alt="${esc(g.caption || '')}" loading="lazy"
            onerror="this.style.opacity='.3'" />
+      <div class="g-order-badge" title="Display order — click to change" data-id="${g.id}">
+        <input type="number" class="g-order-input" data-id="${g.id}"
+          value="${g.sort_order || 0}" min="0" max="9999"
+          title="Set display order (lower = shown first)" />
+      </div>
       ${g.caption ? `<div class="g-cap">${esc(g.caption)}</div>` : ''}
       <div class="g-overlay">
         <button class="btn-edit g-edit" data-id="${g.id}">✏️ Edit</button>
         <button class="btn-del g-del" data-id="${g.id}">🗑 Delete</button>
       </div>
     </div>`).join('');
+
+  // Inline sort-order save on blur / Enter
+  grid.querySelectorAll('.g-order-input').forEach(input => {
+    const save = async () => {
+      const id = input.dataset.id;
+      const val = Number(input.value) || 0;
+      const g = galMap[id];
+      if (!g || val === (g.sort_order || 0)) return;
+      try {
+        await api('/api/admin/gallery/' + id, {
+          method: 'PUT',
+          body: JSON.stringify({ image: g.image, caption: g.caption || '', sort_order: val })
+        });
+        galMap[id].sort_order = val;
+        toast('Order updated ✓');
+      } catch (e) { toast('Save failed', 'err'); }
+    };
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
+    input.addEventListener('click', e => e.stopPropagation());
+  });
 
   grid.querySelectorAll('.g-edit').forEach(btn =>
     btn.addEventListener('click', (e) => {
