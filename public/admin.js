@@ -374,16 +374,33 @@ function fillPost(p) {
   $('poBody').value = p.body || '';
   $('poImg').value = p.image || '';
   $('poDate').value = p.date_label || '';
+  // Show existing image preview
+  const prev = $('poImgPreview');
+  if (prev && p.image) { prev.src = p.image; prev.style.display = 'block'; }
+  const lbl = $('poUploadLabel'); if (lbl && p.image) lbl.textContent = '📎 Click to change image';
   $('poFormTitle').textContent = 'Edit Thought';
   showForm('poForm');
   switchTab('posts');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function previewPoImg(input) {
+  const file = input.files[0];
+  if (!file) return;
+  $('poUploadLabel').textContent = '📎 ' + file.name;
+  const prev = $('poImgPreview');
+  prev.src = URL.createObjectURL(file);
+  prev.style.display = 'block';
+  $('poImg').value = ''; // clear URL field — file takes priority
+}
+
 function clearPost() {
   ['poId', 'poTitle', 'poBody', 'poImg', 'poDate'].forEach(i => {
     const el = $(i); if (el) el.value = '';
   });
+  const fileEl = $('poFile'); if (fileEl) fileEl.value = '';
+  const prev = $('poImgPreview'); if (prev) { prev.src = ''; prev.style.display = 'none'; }
+  const lbl = $('poUploadLabel'); if (lbl) lbl.textContent = '📎 Click to upload image';
   const t = $('poFormTitle'); if (t) t.textContent = 'Add New Thought';
 }
 
@@ -391,11 +408,27 @@ async function savePost() {
   if (!$('poTitle').value.trim()) { toast('Title is required', 'err'); return; }
   const id = $('poId').value;
   try {
+    // Upload file if selected, otherwise fall back to typed URL
+    let imageUrl = $('poImg').value.trim();
+    const fileEl = $('poFile');
+    if (fileEl && fileEl.files[0]) {
+      const fd = new FormData();
+      fd.append('image', fileEl.files[0]);
+      const r = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'fetch' },
+        credentials: 'include',
+        body: fd
+      });
+      if (!r.ok) throw new Error('Image upload failed');
+      const data = await r.json();
+      imageUrl = data.url;
+    }
     await api('/api/admin/posts' + (id ? '/' + id : ''), {
       method: id ? 'PUT' : 'POST',
       body: JSON.stringify({
         title: $('poTitle').value, body: $('poBody').value,
-        image: $('poImg').value, date_label: $('poDate').value
+        image: imageUrl, date_label: $('poDate').value
       })
     });
     toast(id ? 'Post updated ✓' : 'Post added ✓');

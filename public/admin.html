@@ -433,7 +433,15 @@
       <div class="f-field"><label>Title</label><input id="poTitle" placeholder="Title of the thought or post" /></div>
       <div class="f-field"><label>Full Content / Body</label><textarea id="poBody" rows="6" placeholder="Write the full devotional thought here…"></textarea></div>
       <div class="f-row">
-        <div class="f-field"><label>Image URL (optional)</label><input id="poImg" placeholder="https://..." /></div>
+        <div class="f-field">
+          <label>Image (optional)</label>
+          <div class="upload-zone" id="poUploadZone" onclick="document.getElementById('poFile').click()" style="padding:10px 14px;font-size:13px;">
+            <input type="file" id="poFile" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="previewPoImg(this)" />
+            <span id="poUploadLabel">📎 Click to upload image</span>
+          </div>
+          <img id="poImgPreview" src="" alt="" style="display:none;margin-top:6px;max-height:90px;border-radius:6px;border:1px solid var(--line);" />
+          <input id="poImg" placeholder="or paste URL…" style="margin-top:6px;" />
+        </div>
         <div class="f-field"><label>Date Label</label><input id="poDate" placeholder="19 Nov 2025" /></div>
       </div>
       <input id="poId" type="hidden" />
