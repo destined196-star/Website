@@ -6,7 +6,7 @@ import nodemailer from 'nodemailer';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
-import speakeasy from 'speakeasy';
+import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
 import multer from 'multer';
 import fs from 'fs';
@@ -33,7 +33,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+      scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'https://picsum.photos', 'https://*.picsum.photos',
         'https://i.ytimg.com', 'https://quickchart.io', 'https://api.qrserver.com',
@@ -87,11 +87,12 @@ app.use(session({
 }));
 
 // Health check (uptime monitoring)
-app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));
+app.get('/healthz', healthzLimiter, (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // ---- Rate limiting (H3) ----
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'too many attempts, try later' } });
 const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
+const healthzLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 app.use('/api/', apiLimiter);
 
 // ---- CSRF defence: mutations must carry a custom header (H2) ----
@@ -348,7 +349,8 @@ app.post('/api/login', loginLimiter, (req, res) => {
   // Second factor (TOTP) if enabled
   if (row.totp_enabled) {
     if (!token) { audit(username, ip, false, '2fa-required'); return res.status(401).json({ error: '2fa_required' }); }
-    const ok = speakeasy.totp.verify({ secret: row.totp_secret, encoding: 'base32', token: String(token).replace(/\s/g, ''), window: 1 });
+    authenticator.options = { window: 1 };
+    const ok = authenticator.check(String(token).replace(/\s/g, ''), row.totp_secret);
     if (!ok) {
       const fails = (row.failed_attempts || 0) + 1;
       db.prepare('UPDATE admin SET failed_attempts=? WHERE id=?').run(fails, row.id);
@@ -461,15 +463,15 @@ app.delete('/api/admin/gallery/:id', requireAuth, (req, res) => {
 // Videos admin
 app.post('/api/admin/videos', requireAuth, (req, res) => {
   const { title, youtube_url, description, featured, sort_order } = req.body;
-  if (!title || !youtube_url) return res.status(400).json({ error: 'title and youtube_url required' });
+  if (!cap(title, 200).trim() || !cap(youtube_url, 500).trim()) return res.status(400).json({ error: 'title and youtube_url required' });
   const r = db.prepare('INSERT INTO videos (title,youtube_url,description,featured,sort_order) VALUES (?,?,?,?,?)')
-    .run(title, youtube_url, description || '', featured ? 1 : 0, Number(sort_order) || 0);
+    .run(cap(title, 200), cap(youtube_url, 500), cap(description, 2000), featured ? 1 : 0, Number(sort_order) || 0);
   res.json({ id: r.lastInsertRowid });
 });
 app.put('/api/admin/videos/:id', requireAuth, (req, res) => {
   const { title, youtube_url, description, featured, sort_order } = req.body;
   db.prepare('UPDATE videos SET title=?,youtube_url=?,description=?,featured=?,sort_order=? WHERE id=?')
-    .run(title, youtube_url, description || '', featured ? 1 : 0, Number(sort_order) || 0, req.params.id);
+    .run(cap(title, 200), cap(youtube_url, 500), cap(description, 2000), featured ? 1 : 0, Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
 });
 app.delete('/api/admin/videos/:id', requireAuth, (req, res) => {
@@ -516,15 +518,15 @@ app.delete('/api/admin/playlists/:pid/videos/:vid', requireAuth, (req, res) => {
 // Press articles admin
 app.post('/api/admin/press', requireAuth, (req, res) => {
   const { title, publication, date_label, content, image, sort_order } = req.body;
-  if (!title) return res.status(400).json({ error: 'title required' });
+  if (!cap(title, 200).trim()) return res.status(400).json({ error: 'title required' });
   const r = db.prepare('INSERT INTO press_articles (title,publication,date_label,content,image,sort_order) VALUES (?,?,?,?,?,?)')
-    .run(title, publication || '', date_label || '', content || '', image || '', Number(sort_order) || 0);
+    .run(cap(title, 200), cap(publication, 200), cap(date_label, 40), cap(content, 10000), cap(image, 500), Number(sort_order) || 0);
   res.json({ id: r.lastInsertRowid });
 });
 app.put('/api/admin/press/:id', requireAuth, (req, res) => {
   const { title, publication, date_label, content, image, sort_order } = req.body;
   db.prepare('UPDATE press_articles SET title=?,publication=?,date_label=?,content=?,image=?,sort_order=? WHERE id=?')
-    .run(title, publication || '', date_label || '', content || '', image || '', Number(sort_order) || 0, req.params.id);
+    .run(cap(title, 200), cap(publication, 200), cap(date_label, 40), cap(content, 10000), cap(image, 500), Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
 });
 app.delete('/api/admin/press/:id', requireAuth, (req, res) => {
@@ -552,18 +554,20 @@ app.put('/api/admin/password', requireAuth, (req, res) => {
 // ---- Two-factor (TOTP) management ----
 // Step 1: generate a secret + QR for the authenticator app (not yet enabled).
 app.post('/api/admin/2fa/setup', requireAuth, async (req, res) => {
-  const secret = speakeasy.generateSecret({ name: `DeviMurlikaGaur (${req.session.admin.username})` });
+  const base32 = authenticator.generateSecret();
+  const otpauthUrl = authenticator.keyuri(req.session.admin.username, 'DeviMurlikaGaur', base32);
   // Store provisional secret; only flips to enabled once a valid code is confirmed.
-  db.prepare('UPDATE admin SET totp_secret=?, totp_enabled=0 WHERE id=?').run(secret.base32, req.session.admin.id);
-  const qr = await qrcode.toDataURL(secret.otpauth_url);
-  res.json({ qr, secret: secret.base32 });
+  db.prepare('UPDATE admin SET totp_secret=?, totp_enabled=0 WHERE id=?').run(base32, req.session.admin.id);
+  const qr = await qrcode.toDataURL(otpauthUrl);
+  res.json({ qr, secret: base32 });
 });
 
 // Step 2: confirm a code to turn 2FA on.
 app.post('/api/admin/2fa/enable', requireAuth, (req, res) => {
   const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
   if (!row.totp_secret) return res.status(400).json({ error: 'run setup first' });
-  const ok = speakeasy.totp.verify({ secret: row.totp_secret, encoding: 'base32', token: String(req.body.token || '').replace(/\s/g, ''), window: 1 });
+  authenticator.options = { window: 1 };
+  const ok = authenticator.check(String(req.body.token || '').replace(/\s/g, ''), row.totp_secret);
   if (!ok) return res.status(400).json({ error: 'invalid code' });
   db.prepare('UPDATE admin SET totp_enabled=1 WHERE id=?').run(row.id);
   res.json({ ok: true });
@@ -581,6 +585,7 @@ app.put('/api/admin/2fa/disable', requireAuth, (req, res) => {
 
 // ---- DB backup: stream a consistent copy of the SQLite database (admin only) ----
 app.get('/api/admin/backup', requireAuth, (req, res) => {
+  if (!req.session?.admin) return res.status(401).json({ error: 'unauthorized' });
   try {
     db.pragma('wal_checkpoint(TRUNCATE)');           // flush WAL into the main file
     const src = path.join(__dirname, 'data.db');
@@ -600,26 +605,52 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 if (process.env.WEBSITE_INSTANCE_ID) {
   app.use('/uploads', express.static(UPLOAD_DIR));
 }
+
+// Magic-byte signatures for allowed image types
+const IMAGE_MAGIC = [
+  { mime: 'image/jpeg', bytes: [0xFF, 0xD8, 0xFF] },
+  { mime: 'image/png',  bytes: [0x89, 0x50, 0x4E, 0x47] },
+  { mime: 'image/gif',  bytes: [0x47, 0x49, 0x46, 0x38] },
+  { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46] },  // RIFF header; bytes 8-11 = WEBP verified below
+];
+function validateImageMagic(filepath) {
+  const buf = Buffer.alloc(12);
+  const fd = fs.openSync(filepath, 'r');
+  fs.readSync(fd, buf, 0, 12, 0);
+  fs.closeSync(fd);
+  for (const sig of IMAGE_MAGIC) {
+    if (sig.bytes.every((b, i) => buf[i] === b)) {
+      if (sig.mime === 'image/webp') return buf.slice(8, 12).toString('ascii') === 'WEBP';
+      return true;
+    }
+  }
+  return false;
+}
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: UPLOAD_DIR,
     filename: (req, file, cb) => {
       const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' }[file.mimetype] || '';
-      cb(null, crypto.randomBytes(12).toString('hex') + ext);   // random name, no user-controlled path
+      cb(null, crypto.randomBytes(12).toString('hex') + ext);
     }
   }),
-  limits: { fileSize: 50 * 1024 * 1024, files: 1 },               // 50 MB
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
 });
 app.post('/api/admin/upload', requireAuth, (req, res) => {
   upload.single('image')(req, res, err => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: 'image must be jpg/png/webp/gif' });
+    if (!validateImageMagic(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'file content does not match declared image type' });
+    }
     res.json({ ok: true, url: '/uploads/' + req.file.filename });
   });
 });
 
-// Bulk upload — up to 20 images at once
+// Bulk upload — up to 8 images at once
 const uploadBulk = multer({
   storage: multer.diskStorage({
     destination: UPLOAD_DIR,
@@ -628,14 +659,18 @@ const uploadBulk = multer({
       cb(null, crypto.randomBytes(12).toString('hex') + ext);
     }
   }),
-  limits: { fileSize: 50 * 1024 * 1024, files: 8 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 8 },
   fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
 });
 app.post('/api/admin/upload-bulk', requireAuth, (req, res) => {
   uploadBulk.array('images', 8)(req, res, err => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.files || !req.files.length) return res.status(400).json({ error: 'No valid images received' });
-    const urls = req.files.map(f => '/uploads/' + f.filename);
+    const checked = req.files.map(f => ({ file: f, ok: validateImageMagic(f.path) }));
+    checked.filter(r => !r.ok).forEach(r => fs.unlinkSync(r.file.path));
+    const valid = checked.filter(r => r.ok).map(r => r.file);
+    if (!valid.length) return res.status(400).json({ error: 'No valid image content detected' });
+    const urls = valid.map(f => '/uploads/' + f.filename);
     res.json({ ok: true, urls });
   });
 });

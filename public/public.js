@@ -5,6 +5,8 @@
   const post = (u, body) => fetch(API + u, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' }, credentials: 'include', body: JSON.stringify(body) });
   // Only allow safe URL schemes in rendered href/src (M4 — blocks javascript: etc.)
   const safeUrl = u => { const v = String(u || '').trim(); return /^(https?:\/\/|\/|\.\/|#|mailto:|tel:)/i.test(v) ? v : '#'; };
+  // Gallery links: only same-origin paths or YouTube URLs (prevents open redirect via admin-set caption)
+  const safeGalleryHref = u => { const v = String(u || '').trim(); return /^(\/|\.\/)|^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(v) ? v : '#'; };
   let s = {};
   try { s = await get('/api/settings'); } catch (e) { /* server not running — static fallback */ }
 
@@ -46,7 +48,7 @@
     try {
       const imgs = await get('/api/gallery');
       galWrap.innerHTML = imgs.map(g =>
-        `<a href="${esc(safeUrl(g.caption || g.image))}" target="_blank" rel="noopener" title="Watch on YouTube"><img src="${esc(safeUrl(g.image))}" alt="Devi Murlika Gaur" /></a>`
+        `<a href="${esc(safeGalleryHref(g.caption || g.image))}" target="_blank" rel="noopener" title="Watch on YouTube"><img src="${esc(safeUrl(g.image))}" alt="Devi Murlika Gaur" /></a>`
       ).join('') || '<p style="text-align:center;color:var(--muted)">No images yet.</p>';
     } catch (e) {}
   }
