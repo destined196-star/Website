@@ -6,9 +6,10 @@ let UPI_ID = '';
 let UPI_NAME = '';
 
 function buildUpiUrl() {
-  return 'upi://pay?pa=' + encodeURIComponent(UPI_ID)
+  // pa (VPA) must NOT be percent-encoded per NPCI spec — @ stays literal
+  return 'upi://pay?pa=' + UPI_ID
     + '&pn=' + encodeURIComponent(UPI_NAME)
-    + '&cu=INR&tn=Donation';
+    + '&mc=0000&cu=INR&tn=Donation';
 }
 
 function esc(str) {
@@ -24,7 +25,9 @@ function renderPaymentMethods(s) {
   if (s.upi_id) {
     UPI_ID = s.upi_id;
     UPI_NAME = s.upi_name || 'Devi Murlika Gaur';
-    var qrData = 'upi://pay?pa=' + encodeURIComponent(UPI_ID) + '&pn=' + encodeURIComponent(UPI_NAME) + '&cu=INR';
+    // NPCI UPI spec: pa (VPA) must NOT be percent-encoded — @ must stay literal.
+    // mc=0000 (generic merchant code) prevents "invalid merchant" errors on strict apps.
+    var qrData = 'upi://pay?pa=' + UPI_ID + '&pn=' + encodeURIComponent(UPI_NAME) + '&mc=0000&cu=INR';
     var qrUrl = 'https://quickchart.io/qr?text=' + encodeURIComponent(qrData) + '&size=172&margin=1';
     var qrFallback = 'https://api.qrserver.com/v1/create-qr-code/?size=172x172&data=' + encodeURIComponent(qrData);
 
