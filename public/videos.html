@@ -14,6 +14,20 @@
   .yt-thumb .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
   .yt-thumb .play svg { width:64px; height:64px; filter:drop-shadow(0 2px 6px rgba(0,0,0,.5)); }
   .featured-thumb { border-radius:12px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.15); }
+
+  /* Playlist styles */
+  .pl-section { margin-bottom:48px; }
+  .pl-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; cursor:pointer; user-select:none; }
+  .pl-header h3 { margin:0; font-size:1.25rem; color:var(--maroon); }
+  .pl-header .pl-count { font-size:13px; color:var(--muted); font-weight:400; }
+  .pl-header .pl-toggle { font-size:18px; color:var(--saffron-dark); transition:transform .2s; }
+  .pl-header .pl-toggle.open { transform:rotate(90deg); }
+  .pl-desc { color:var(--muted); font-size:14px; margin-bottom:14px; }
+  .pl-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:18px; }
+  .pl-collapsed { display:none; }
+  .pl-nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:32px; }
+  .pl-nav a { padding:7px 16px; border-radius:20px; background:var(--cream); color:var(--maroon); font-size:13px; font-weight:600; text-decoration:none; border:1px solid var(--gold); transition:all .15s; }
+  .pl-nav a:hover, .pl-nav a.active { background:var(--saffron); color:#fff; border-color:var(--saffron); }
 </style>
 </head>
 <body>
@@ -91,7 +105,20 @@
 <section class="offerings">
   <div class="container">
     <div class="section-title">
-      <h2>More Videos</h2>
+      <h2>Playlists</h2>
+      <p>Browse by category — click any playlist to expand</p>
+    </div>
+    <div id="playlistNav" class="pl-nav"></div>
+    <div id="playlistsWrap">
+      <!-- loaded from API -->
+    </div>
+  </div>
+</section>
+
+<section class="offerings" style="padding-top:0">
+  <div class="container">
+    <div class="section-title">
+      <h2>All Videos</h2>
       <p>Click any thumbnail to watch on YouTube</p>
     </div>
     <div class="video-grid" id="videoGrid">

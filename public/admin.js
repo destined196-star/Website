@@ -807,6 +807,38 @@ async function delVideo(id) {
 }
 
 /* ══════════════════════════════════════════════
+   PLAYLISTS (under Videos tab)
+   ══════════════════════════════════════════════ */
+async function loadPlaylists() {
+  const pls = await api('/api/playlists').catch(() => []);
+  const el = $('plList');
+  if (!el) return;
+  if (!pls.length) {
+    el.innerHTML = '<p style="color:var(--muted)">No playlists yet.</p>';
+    return;
+  }
+  el.innerHTML = pls.map(p => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)">
+      <div style="flex:1">
+        <strong>${esc(p.name)}</strong>
+        <span style="color:var(--muted);font-size:13px;margin-left:8px">${p.video_count} videos</span>
+        ${p.description ? `<br><small style="color:var(--muted)">${esc(p.description)}</small>` : ''}
+      </div>
+      <button class="btn-del" style="font-size:12px" onclick="delPlaylist(${p.id},'${esc(p.name).replace(/'/g,"\\'")}')">🗑</button>
+    </div>
+  `).join('');
+}
+
+async function delPlaylist(id, name) {
+  delWithUndo('📁 Playlist deleted', name, async () => {
+    try {
+      await api('/api/admin/playlists/' + id, { method: 'DELETE' });
+      await loadPlaylists();
+    } catch (e) { toast(e.message, 'err'); }
+  });
+}
+
+/* ══════════════════════════════════════════════
    PRESS ARTICLES
    ══════════════════════════════════════════════ */
 async function loadPress() {
@@ -978,6 +1010,7 @@ async function init() {
     ]);
     buildCharts();
     loadDonations();
+    loadPlaylists();
     loadSettings();
   } catch (e) {
     console.error('Admin init error:', e);
