@@ -6,7 +6,7 @@ import nodemailer from 'nodemailer';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
-import { authenticator } from 'otplib';
+import { generateSecret as totpGenerateSecret, generateURI as totpGenerateURI, verifySync as totpVerify } from 'otplib';
 import qrcode from 'qrcode';
 import multer from 'multer';
 import fs from 'fs';
@@ -359,8 +359,7 @@ app.post('/api/login', loginLimiter, (req, res) => {
   // Second factor (TOTP) if enabled
   if (row.totp_enabled) {
     if (!token) { audit(username, ip, false, '2fa-required'); return res.status(401).json({ error: '2fa_required' }); }
-    authenticator.options = { window: 1 };
-    const ok = authenticator.check(String(token).replace(/\s/g, ''), row.totp_secret);
+    const ok = totpVerify({ token: String(token).replace(/\s/g, ''), secret: row.totp_secret, type: 'totp', window: 1 }).valid;
     if (!ok) {
       const fails = (row.failed_attempts || 0) + 1;
       db.prepare('UPDATE admin SET failed_attempts=? WHERE id=?').run(fails, row.id);
@@ -574,8 +573,8 @@ app.put('/api/admin/password', requireAuth, (req, res) => {
 // ---- Two-factor (TOTP) management ----
 // Step 1: generate a secret + QR for the authenticator app (not yet enabled).
 app.post('/api/admin/2fa/setup', requireAuth, async (req, res) => {
-  const base32 = authenticator.generateSecret();
-  const otpauthUrl = authenticator.keyuri(req.session.admin.username, 'DeviMurlikaGaur', base32);
+  const base32 = totpGenerateSecret();
+  const otpauthUrl = totpGenerateURI({ label: req.session.admin.username, issuer: 'DeviMurlikaGaur', secret: base32 });
   // Store provisional secret; only flips to enabled once a valid code is confirmed.
   db.prepare('UPDATE admin SET totp_secret=?, totp_enabled=0 WHERE id=?').run(base32, req.session.admin.id);
   const qr = await qrcode.toDataURL(otpauthUrl);
@@ -586,8 +585,7 @@ app.post('/api/admin/2fa/setup', requireAuth, async (req, res) => {
 app.post('/api/admin/2fa/enable', requireAuth, (req, res) => {
   const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
   if (!row.totp_secret) return res.status(400).json({ error: 'run setup first' });
-  authenticator.options = { window: 1 };
-  const ok = authenticator.check(String(req.body.token || '').replace(/\s/g, ''), row.totp_secret);
+  const ok = totpVerify({ token: String(req.body.token || '').replace(/\s/g, ''), secret: row.totp_secret, type: 'totp', window: 1 }).valid;
   if (!ok) return res.status(400).json({ error: 'invalid code' });
   db.prepare('UPDATE admin SET totp_enabled=1 WHERE id=?').run(row.id);
   res.json({ ok: true });
