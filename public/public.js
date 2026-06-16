@@ -147,3 +147,19 @@
 
   function esc(t) { return String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 })();
+
+// Global image error handler — replaces onerror= attrs in JS-generated HTML.
+// data-img-fb="URL"  → use that URL as fallback src (once)
+// data-img-err="hide" → hide image on error
+// data-img-err="fade" → reduce opacity on error
+document.addEventListener('error', function(e) {
+  var t = e.target;
+  if (!t || t.tagName !== 'IMG') return;
+  if (t.dataset.imgFb && !t.dataset.fbUsed) {
+    t.dataset.fbUsed = '1';
+    t.src = t.dataset.imgFb;
+    return;
+  }
+  if (t.dataset.imgErr === 'hide') t.style.display = 'none';
+  else if (t.dataset.imgErr === 'fade') t.style.opacity = '.3';
+}, true);

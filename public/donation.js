@@ -41,7 +41,7 @@ function renderPaymentMethods(s) {
       + '<span>Use GPay · PhonePe · Paytm · BHIM or any UPI app</span></div>'
       + '<div class="qr-slip-body">'
       + '<div class="qr-wrap"><img id="upiQr" alt="UPI QR Code" width="172" height="172" src="' + qrUrl + '" '
-      + 'onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=\'' + qrFallback + '\'}" /></div>'
+      + 'data-img-fb="' + esc(qrFallback) + '" /></div>'
       + '<div class="qr-name">' + esc(UPI_NAME) + '</div>'
       + '</div></div>';
 

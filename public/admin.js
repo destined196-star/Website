@@ -346,7 +346,7 @@ async function loadPosts() {
   list.innerHTML = posts.map(p => `
     <div class="admin-blog-card">
       ${p.image
-        ? `<img class="blog-img" src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" onerror="this.style.display='none'" />`
+        ? `<img class="blog-img" src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy" data-img-err="hide" />`
         : `<div class="blog-img-ph">🙏</div>`}
       <div class="blog-body">
         <div class="blog-date">${esc(p.date_label || '')}</div>
@@ -472,7 +472,7 @@ async function loadGallery() {
   grid.innerHTML = gallery.map(g => `
     <div class="g-cell">
       <img src="${esc(g.image)}" alt="${esc(g.caption || '')}" loading="lazy"
-           onerror="this.style.opacity='.3'" />
+           data-img-err="fade" />
       <div class="g-order-badge" title="Display order — click to change" data-id="${g.id}">
         <input type="number" class="g-order-input" data-id="${g.id}"
           value="${g.sort_order || 0}" min="0" max="9999"
@@ -731,7 +731,7 @@ async function loadVideos() {
     return `
     <div class="admin-video-card">
       ${thumb
-        ? `<img class="vc-thumb" src="${esc(thumb)}" alt="${esc(v.title)}" loading="lazy" onerror="this.style.display='none'" />`
+        ? `<img class="vc-thumb" src="${esc(thumb)}" alt="${esc(v.title)}" loading="lazy" data-img-err="hide" />`
         : `<div style="aspect-ratio:16/9;background:var(--maroon);display:flex;align-items:center;justify-content:center;font-size:36px">▶️</div>`}
       <div class="vc-body">
         <h4>${esc(v.title)}${v.featured ? '<span class="featured-badge">Featured</span>' : ''}</h4>
@@ -857,7 +857,7 @@ async function loadPress() {
     <div class="admin-press-item">
       <div class="pi-head">
         ${p.image
-          ? `<img class="pi-img" src="${esc(p.image)}" alt="" loading="lazy" onerror="this.style.display='none'" />`
+          ? `<img class="pi-img" src="${esc(p.image)}" alt="" loading="lazy" data-img-err="hide" />`
           : `<div class="pi-img-ph">📰</div>`}
         <div class="pi-info">
           <h4>${esc(p.title)}</h4>
@@ -998,6 +998,68 @@ async function saveSettings() {
 }
 
 function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
+
+/* ══════════════════════════════════════════════
+   EVENT DELEGATION — replaces all onclick= attrs
+   ══════════════════════════════════════════════ */
+(function wireAdminEvents() {
+  // Delegated handler for data-action buttons
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var map = {
+      addEvent:       function() { toggleForm('evForm'); },
+      saveEvent:      function() { saveEvent(); },
+      cancelEvent:    function() { cancelForm('evForm'); clearEvent(); },
+      addPost:        function() { toggleForm('poForm'); },
+      savePost:       function() { savePost(); },
+      cancelPost:     function() { cancelForm('poForm'); clearPost(); },
+      autoNumber:     function() { autoNumberGallery(); },
+      addGallery:     function() { toggleForm('galUpload'); },
+      clearBulk:      function() { clearBulkUpload(); },
+      addVideo:       function() { toggleForm('vidForm'); },
+      saveVideo:      function() { saveVideo(); },
+      cancelVideo:    function() { cancelForm('vidForm'); clearVideo(); },
+      addPress:       function() { toggleForm('pressForm'); },
+      savePress:      function() { savePress(); },
+      cancelPress:    function() { cancelForm('pressForm'); clearPress(); },
+      downloadBackup: function() { downloadBackup(); },
+      saveSettings:   function() { saveSettings(); }
+    };
+    var fn = map[btn.dataset.action];
+    if (fn) fn();
+  });
+
+  // Upload zone clicks (open file picker)
+  var poZone = document.getElementById('poUploadZone');
+  var poFile = document.getElementById('poFile');
+  if (poZone && poFile) {
+    poZone.addEventListener('click', function() { poFile.click(); });
+    poFile.addEventListener('change', function() { previewPoImg(this); });
+  }
+  var bulkZone = document.getElementById('bulkUploadZone');
+  var bulkFiles = document.getElementById('gBulkFiles');
+  if (bulkZone && bulkFiles) {
+    bulkZone.addEventListener('click', function() { bulkFiles.click(); });
+  }
+  var bulkBtn = document.getElementById('bulkUploadBtn');
+  if (bulkBtn) {
+    bulkBtn.addEventListener('click', function() { doBulkUpload(); });
+  }
+
+  // Global image error handler (replaces onerror= attrs in generated HTML)
+  document.addEventListener('error', function(e) {
+    var t = e.target;
+    if (!t || t.tagName !== 'IMG') return;
+    if (t.dataset.imgFb && !t.dataset.fbUsed) {
+      t.dataset.fbUsed = '1';
+      t.src = t.dataset.imgFb;
+      return;
+    }
+    if (t.dataset.imgErr === 'hide') t.style.display = 'none';
+    else if (t.dataset.imgErr === 'fade') t.style.opacity = '.3';
+  }, true);
+})();
 
 /* ══════════════════════════════════════════════
    INIT

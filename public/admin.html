@@ -6,7 +6,7 @@
 <title>Admin – Devi Murlika Gaur</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="styles.css" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
 <style>
 /* ── Admin Shell ── */
 .admin-badge {
@@ -353,7 +353,7 @@
     <span>🙏 Devi Murlika Gaur <span class="admin-badge">ADMIN</span></span>
     <div class="topbar-admin-right">
       <a href="index.html" target="_blank">View Site ↗</a>
-      <a onclick="location.href='index.html'">Exit Admin</a>
+      <a href="index.html">Exit Admin</a>
     </div>
   </div>
 </div>
@@ -392,7 +392,7 @@
   <div class="admin-section active" id="s-events">
     <div class="a-tab-header">
       <h2>📅 Events</h2>
-      <button class="btn-add" onclick="toggleForm('evForm')">+ Add New Event</button>
+      <button class="btn-add" data-action="addEvent">+ Add New Event</button>
     </div>
 
     <!-- Add / Edit form (hidden by default) -->
@@ -410,8 +410,8 @@
       </div>
       <input id="evId" type="hidden" />
       <div class="f-actions">
-        <button class="btn-save" onclick="saveEvent()">💾 Save Event</button>
-        <button class="btn-clear" onclick="cancelForm('evForm'); clearEvent()">✕ Cancel</button>
+        <button class="btn-save" data-action="saveEvent">💾 Save Event</button>
+        <button class="btn-clear" data-action="cancelEvent">✕ Cancel</button>
       </div>
     </div>
 
@@ -425,7 +425,7 @@
   <div class="admin-section" id="s-posts">
     <div class="a-tab-header">
       <h2>✍️ Thoughts &amp; Posts</h2>
-      <button class="btn-add" onclick="toggleForm('poForm')">+ Add New Post</button>
+      <button class="btn-add" data-action="addPost">+ Add New Post</button>
     </div>
 
     <div class="a-form-panel" id="poForm" style="display:none">
@@ -435,8 +435,8 @@
       <div class="f-row">
         <div class="f-field">
           <label>Image (optional)</label>
-          <div class="upload-zone" id="poUploadZone" onclick="document.getElementById('poFile').click()" style="padding:10px 14px;font-size:13px;">
-            <input type="file" id="poFile" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" onchange="previewPoImg(this)" />
+          <div class="upload-zone" id="poUploadZone" style="padding:10px 14px;font-size:13px;">
+            <input type="file" id="poFile" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" />
             <span id="poUploadLabel">📎 Click to upload image</span>
           </div>
           <img id="poImgPreview" src="" alt="" style="display:none;margin-top:6px;max-height:90px;border-radius:6px;border:1px solid var(--line);" />
@@ -446,8 +446,8 @@
       </div>
       <input id="poId" type="hidden" />
       <div class="f-actions">
-        <button class="btn-save" onclick="savePost()">💾 Save Post</button>
-        <button class="btn-clear" onclick="cancelForm('poForm'); clearPost()">✕ Cancel</button>
+        <button class="btn-save" data-action="savePost">💾 Save Post</button>
+        <button class="btn-clear" data-action="cancelPost">✕ Cancel</button>
       </div>
     </div>
 
@@ -461,13 +461,13 @@
   <div class="admin-section" id="s-gallery">
     <div class="a-tab-header">
       <h2>🖼️ Gallery</h2>
-      <button class="btn-add" onclick="autoNumberGallery()" title="Assign 1,2,3... to all images in current order">🔢 Auto-number</button>
-      <button class="btn-add" onclick="toggleForm('galUpload')">📷 Upload Photos</button>
+      <button class="btn-add" data-action="autoNumber" title="Assign 1,2,3... to all images in current order">🔢 Auto-number</button>
+      <button class="btn-add" data-action="addGallery">📷 Upload Photos</button>
     </div>
 
     <div class="a-form-panel" id="galUpload" style="display:none">
       <h3>📷 Upload Photos — select one or many at once</h3>
-      <div class="upload-zone" id="bulkUploadZone" onclick="document.getElementById('gBulkFiles').click()">
+      <div class="upload-zone" id="bulkUploadZone">
         <input type="file" id="gBulkFiles" accept="image/jpeg,image/png,image/webp,image/gif" multiple />
         <span class="uz-icon">📷</span>
         <p class="uz-text">Click to select photos from your device<br>
@@ -477,7 +477,7 @@
       <div id="bulkPreview" style="display:none;margin-top:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <strong id="bulkCount">0 images selected</strong>
-          <button class="btn-clear" onclick="clearBulkUpload()">✕ Clear</button>
+          <button class="btn-clear" data-action="clearBulk">✕ Clear</button>
         </div>
         <div id="bulkThumbGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:14px"></div>
         <div class="f-field" style="max-width:400px;margin-bottom:14px">
@@ -490,7 +490,7 @@
           </div>
           <small id="bulkStatus" style="color:var(--muted)">Uploading…</small>
         </div>
-        <button class="btn-save" id="bulkUploadBtn" onclick="doBulkUpload()">📤 Upload</button>
+        <button class="btn-save" id="bulkUploadBtn">📤 Upload</button>
       </div>
       <!-- hidden single-upload fields kept for edit flow -->
       <input id="gFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" />
@@ -516,7 +516,7 @@
   <div class="admin-section" id="s-videos">
     <div class="a-tab-header">
       <h2>🎬 Videos</h2>
-      <button class="btn-add" onclick="toggleForm('vidForm')">+ Add New Video</button>
+      <button class="btn-add" data-action="addVideo">+ Add New Video</button>
     </div>
 
     <div class="a-form-panel" id="vidForm" style="display:none">
@@ -532,8 +532,8 @@
       </div>
       <input id="vidId" type="hidden" />
       <div class="f-actions">
-        <button class="btn-save" onclick="saveVideo()">💾 Save Video</button>
-        <button class="btn-clear" onclick="cancelForm('vidForm'); clearVideo()">✕ Cancel</button>
+        <button class="btn-save" data-action="saveVideo">💾 Save Video</button>
+        <button class="btn-clear" data-action="cancelVideo">✕ Cancel</button>
       </div>
     </div>
 
@@ -556,7 +556,7 @@
   <div class="admin-section" id="s-press">
     <div class="a-tab-header">
       <h2>📰 Press &amp; Media</h2>
-      <button class="btn-add" onclick="toggleForm('pressForm')">+ Add Press Article</button>
+      <button class="btn-add" data-action="addPress">+ Add Press Article</button>
     </div>
 
     <div class="a-form-panel" id="pressForm" style="display:none">
@@ -573,8 +573,8 @@
       </div>
       <input id="pressId" type="hidden" />
       <div class="f-actions">
-        <button class="btn-save" onclick="savePress()">💾 Save Article</button>
-        <button class="btn-clear" onclick="cancelForm('pressForm'); clearPress()">✕ Cancel</button>
+        <button class="btn-save" data-action="savePress">💾 Save Article</button>
+        <button class="btn-clear" data-action="cancelPress">✕ Cancel</button>
       </div>
     </div>
 
@@ -629,7 +629,7 @@
         <p style="color:var(--muted);font-size:14px;margin-bottom:16px">
           Download a full backup of all site data (messages, gallery, events, posts, donations, settings).
         </p>
-        <button class="btn-save" onclick="downloadBackup()">⬇ Download DB Backup</button>
+        <button class="btn-save" data-action="downloadBackup">⬇ Download DB Backup</button>
       </div>
 
     </div>
@@ -674,7 +674,7 @@
 
     <div style="margin-top:8px">
       <div id="setMsg" style="display:none;padding:12px 16px;border-radius:6px;margin-bottom:14px;font-size:14px;font-weight:600;color:#3a7a2a;background:#e3f3df"></div>
-      <button class="btn-save" style="padding:13px 36px;font-size:15px" onclick="saveSettings()">💾 Save All Settings</button>
+      <button class="btn-save" style="padding:13px 36px;font-size:15px" data-action="saveSettings">💾 Save All Settings</button>
     </div>
   </div>
 

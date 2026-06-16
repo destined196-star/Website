@@ -23,6 +23,14 @@ if (!SESSION_SECRET || SESSION_SECRET.length < 32) {
   throw new Error('SESSION_SECRET must be set to a random string of at least 32 characters');
 }
 
+// Suppress non-error console output in production (Azure captures stderr for errors)
+if (PROD) {
+  console.log = function() {};
+  console.debug = function() {};
+  console.info = function() {};
+  // console.warn and console.error stay active
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.disable('x-powered-by');          // M2: don't leak the stack
@@ -40,7 +48,6 @@ app.use(helmet({
         'https://*.googleusercontent.com', 'https://*.ggpht.com'],
       frameSrc: ["'self'", 'https://www.youtube.com', 'https://www.google.com'],
       connectSrc: ["'self'"],
-      scriptSrcAttr: ["'unsafe-inline'"],   // allow onclick/onerror attrs in HTML
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       frameAncestors: ["'self'"]
@@ -86,14 +93,14 @@ app.use(session({
   cookie: { httpOnly: true, sameSite: 'strict', secure: PROD, maxAge: 1000 * 60 * 30 } // 30 min idle
 }));
 
-// Health check (uptime monitoring)
-app.get('/healthz', healthzLimiter, (req, res) => res.json({ ok: true, ts: Date.now() }));
-
 // ---- Rate limiting (H3) ----
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'too many attempts, try later' } });
 const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
 const healthzLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 app.use('/api/', apiLimiter);
+
+// Health check (uptime monitoring)
+app.get('/healthz', healthzLimiter, (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // ---- CSRF defence: mutations must carry a custom header (H2) ----
 // Browsers cannot set custom headers on cross-site requests without a CORS
@@ -119,8 +126,11 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER) {
   console.log('[mail] no SMTP env — messages stored in DB only');
 }
 
-// ---- Auth middleware (disabled: open admin) ----
-function requireAuth(req, res, next) { return next(); }
+// ---- Auth middleware ----
+function requireAuth(req, res, next) {
+  if (!req.session?.admin) return res.status(401).json({ error: 'unauthorized' });
+  next();
+}
 
 // ================= PUBLIC API =================
 
@@ -390,8 +400,16 @@ app.delete('/api/admin/messages/:id', requireAuth, (req, res) => {
 });
 
 // Settings update — only known keys (M6)
-const ALLOWED_SETTINGS = new Set(['youtube', 'facebook', 'instagram', 'pinterest', 'phone',
-  'location', 'bio', 'paypal_link', 'razorpay_key', 'upi_id', 'donation_note']);
+const ALLOWED_SETTINGS = new Set([
+  'youtube', 'facebook', 'instagram', 'pinterest', 'phone', 'location', 'bio',
+  // donation / payment
+  'upi_id', 'upi_name', 'donation_note',
+  'razorpay_key', 'razorpay_link',
+  'paypal_link',
+  'gpay_number', 'phonepe_number', 'paytm_number',
+  'other_payment',
+  'bank_name', 'bank_account_name', 'bank_account_number', 'bank_ifsc', 'bank_branch'
+]);
 app.put('/api/admin/settings', requireAuth, (req, res) => {
   const up = db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value');
   for (const [k, v] of Object.entries(req.body || {})) {
@@ -502,9 +520,11 @@ app.delete('/api/admin/playlists/:id', requireAuth, (req, res) => {
 app.post('/api/admin/playlists/:id/videos', requireAuth, (req, res) => {
   const { video_ids } = req.body;  // array of video IDs
   if (!Array.isArray(video_ids)) return res.status(400).json({ error: 'video_ids array required' });
+  const ids = video_ids.map(v => parseInt(v, 10)).filter(v => Number.isInteger(v) && v > 0);
+  if (!ids.length) return res.status(400).json({ error: 'no valid video_ids' });
   const ins = db.prepare('INSERT OR IGNORE INTO playlist_videos (playlist_id,video_id,sort_order) VALUES (?,?,?)');
   const tx = db.transaction(() => {
-    video_ids.forEach((vid, i) => ins.run(req.params.id, vid, i + 1));
+    ids.forEach((vid, i) => ins.run(req.params.id, vid, i + 1));
   });
   tx();
   res.json({ ok: true });
@@ -659,11 +679,11 @@ const uploadBulk = multer({
       cb(null, crypto.randomBytes(12).toString('hex') + ext);
     }
   }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 8 },
+  limits: { fileSize: 50 * 1024 * 1024, files: 20 },
   fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
 });
 app.post('/api/admin/upload-bulk', requireAuth, (req, res) => {
-  uploadBulk.array('images', 8)(req, res, err => {
+  uploadBulk.array('images', 20)(req, res, err => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.files || !req.files.length) return res.status(400).json({ error: 'No valid images received' });
     const checked = req.files.map(f => ({ file: f, ok: validateImageMagic(f.path) }));
@@ -681,7 +701,11 @@ app.get('/api/admin/audit', requireAuth, (req, res) => {
 });
 
 // ---- Clean admin URL: /admin serves the login panel (no link anywhere on the site) ----
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/admin', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 // Keep the old .html path working but send people to the clean URL
 app.get('/admin.html', (req, res) => res.redirect(301, '/admin'));
 

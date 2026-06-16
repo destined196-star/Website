@@ -43,7 +43,7 @@ fetch('/api/press').then(function(r){return r.json();}).then(function(articles) 
   }
   grid.innerHTML = articles.map(function(p) {
     var imgHtml = p.image
-      ? '<img src="'+esc(p.image)+'" alt="'+esc(p.title)+'" style="width:100%;max-height:160px;object-fit:cover;" onerror="this.style.display=\'none\'" />'
+      ? '<img src="'+esc(p.image)+'" alt="'+esc(p.title)+'" style="width:100%;max-height:160px;object-fit:cover;" data-img-err="hide" />'
       : '';
     var pubHtml = p.publication ? '<span class="press-source">📰 '+esc(p.publication)+'</span>' : '<span class="press-source">📰 Press</span>';
     var dateHtml = p.date_label ? '<span class="press-date">'+esc(p.date_label)+'</span>' : '';

@@ -40,11 +40,28 @@
       });
     }
 
+    // Delegated click handler for playlist headers (replaces onclick= attrs)
+    wrap.addEventListener('click', function(e) {
+      var hdr = e.target.closest('[data-pl-toggle]');
+      if (!hdr) return;
+      var plId = hdr.dataset.plToggle;
+      var grid = document.getElementById('pl-grid-' + plId);
+      var toggle = hdr.querySelector('.pl-toggle');
+      if (grid) {
+        var wasCollapsed = grid.classList.contains('pl-collapsed');
+        grid.classList.toggle('pl-collapsed');
+        if (toggle) toggle.classList.toggle('open', wasCollapsed);
+        if (wasCollapsed) {
+          document.getElementById('pl-' + plId).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    });
+
     // Build playlist sections
     wrap.innerHTML = pls.map(function(p) {
       var vidsHtml = p.videos.map(videoCard).join('');
       return '<div class="pl-section" id="pl-'+p.id+'">'
-        + '<div class="pl-header" onclick="var g=document.getElementById(\'pl-grid-'+p.id+'\');var t=this.querySelector(\'.pl-toggle\');g.classList.toggle(\'pl-collapsed\');t.classList.toggle(\'open\')">'
+        + '<div class="pl-header" data-pl-toggle="'+p.id+'">'
         + '<span class="pl-toggle">▶</span>'
         + '<h3>'+esc(p.name)+'</h3>'
         + '<span class="pl-count">'+p.video_count+' videos</span>'
@@ -72,7 +89,7 @@
     if (featEl && featured) {
       var id = vidId(featured.youtube_url);
       featEl.innerHTML = '<a class="yt-thumb featured-thumb" href="'+esc(featured.youtube_url)+'" target="_blank" rel="noopener">'
-        + '<img src="https://i.ytimg.com/vi/'+id+'/maxresdefault.jpg" onerror="this.src=\'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg\'" alt="'+esc(featured.title)+'" />'
+        + '<img src="https://i.ytimg.com/vi/'+id+'/maxresdefault.jpg" data-img-fb="https://i.ytimg.com/vi/'+id+'/hqdefault.jpg" alt="'+esc(featured.title)+'" />'
         + PLAY + '</a>'
         + '<p style="text-align:center;margin-top:12px;font-weight:600;color:var(--maroon)">'+esc(featured.title)+'</p>';
     }

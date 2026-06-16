@@ -2,7 +2,30 @@ node_modules/
 data.db
 data.db-shm
 data.db-wal
+
+# Environment & secrets
 .env
+.env.local
+.env.production
+*.pem
+*.key
+*.cert
+*.p12
+
+# Logs
 *.log
 server.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads (user content, not code)
+public/uploads/
+
+# IDE / tools
 .code-review-graph/
+.claude/
+.vscode/
+*.swp
+*.swo
