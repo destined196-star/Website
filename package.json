@@ -5,12 +5,13 @@
   "type": "module",
   "main": "server.js",
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.0.0",
     "npm": ">=9.0.0"
   },
   "scripts": {
     "start": "node server.js",
-    "build": "npm rebuild better-sqlite3",
+    "build": "npm rebuild better-sqlite3 --build-from-source",
+    "postinstall": "npm rebuild better-sqlite3 --build-from-source",
     "lint": "node --check server.js && node --check db.js && echo '✓ Syntax OK'",
     "test": "node --check server.js && node --check db.js && node scripts/smoke-test.mjs"
   },
