@@ -10,8 +10,6 @@
   },
   "scripts": {
     "start": "node server.js",
-    "build": "npm rebuild better-sqlite3 --build-from-source",
-    "postinstall": "npm rebuild better-sqlite3 --build-from-source",
     "lint": "node --check server.js && node --check db.js && echo '✓ Syntax OK'",
     "test": "node --check server.js && node --check db.js && node scripts/smoke-test.mjs"
   },
