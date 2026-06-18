@@ -27,7 +27,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --ignore-scripts   # skip native rebuild — we only need JS checks
+        run: npm ci   # full install — builds native binaries for Node 22 (same ABI as Azure runtime)
 
       - name: Syntax check (server.js + db.js)
         run: npm run lint
@@ -60,9 +60,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
-
-      - name: Remove node_modules (Azure builds natively)
-        run: rm -rf node_modules
 
       - name: Login to Azure
         uses: azure/login@v2
