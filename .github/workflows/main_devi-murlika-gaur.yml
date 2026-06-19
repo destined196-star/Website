@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 # ────────────────────────────────────────────────
-# JOB 1: checks  (syntax + smoke — runs on EVERY push/PR)
+# JOB 1: check  (syntax + smoke — runs on EVERY push/PR)
 # ────────────────────────────────────────────────
 jobs:
   check:
@@ -27,7 +27,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci   # full install — builds native binaries for Node 22 (same ABI as Azure runtime)
+        run: npm ci   # Linux runner → ABI 127 prebuilt binary for better-sqlite3
 
       - name: Syntax check (server.js + db.js)
         run: npm run lint
@@ -35,13 +35,28 @@ jobs:
       - name: Smoke checks
         run: node scripts/smoke-test.mjs
 
-      - name: Upload artifact for deploy
+      - name: Create deployment zip (node_modules included — Linux-built)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          zip -r app.zip . \
+            --exclude "*.git*" \
+            --exclude "*.DS_Store*" \
+            --exclude "data.db*" \
+            --exclude ".env*" \
+            --exclude ".claude/*" \
+            --exclude ".code-review-graph/*" \
+            --exclude "server.log" \
+            --exclude "app.zip" \
+            -q
+          echo "Zip size: $(du -sh app.zip | cut -f1)"
+
+      - name: Upload deployment zip
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: .
-          exclude-hidden-files: false
+          name: app-zip
+          path: app.zip
+          retention-days: 1
 
 # ────────────────────────────────────────────────
 # JOB 2: deploy  (only on push to main, only if check passed)
@@ -56,10 +71,10 @@ jobs:
       contents: read
 
     steps:
-      - name: Download artifact
+      - name: Download deployment zip
         uses: actions/download-artifact@v4
         with:
-          name: node-app
+          name: app-zip
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -73,13 +88,30 @@ jobs:
           az webapp update --name devi-murlika-gaur --resource-group devi-murlika-rg --set enabled=true
           az webapp start  --name devi-murlika-gaur --resource-group devi-murlika-rg
 
-      - name: Deploy to Azure Web App
-        id: deploy
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'devi-murlika-gaur'
-          slot-name: 'Production'
-          package: .
+      - name: Deploy via Kudu ZipDeploy (bypasses OneDeploy)
+        run: |
+          TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
+          echo "Submitting ZipDeploy..."
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "https://devi-murlika-gaur-f3fwhfetbretezgm.scm.centralindia-01.azurewebsites.net/api/zipdeploy?isAsync=true" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/zip" \
+            --data-binary @app.zip)
+          echo "Accepted: $HTTP"
+          [ "$HTTP" != "202" ] && echo "❌ ZipDeploy rejected (HTTP $HTTP)" && exit 1
+          echo "Polling deployment status..."
+          for i in $(seq 1 36); do
+            RESULT=$(curl -s \
+              "https://devi-murlika-gaur-f3fwhfetbretezgm.scm.centralindia-01.azurewebsites.net/api/deployments" \
+              -H "Authorization: Bearer $TOKEN")
+            STATUS=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin)[0]; print(d['status'])")
+            COMPLETE=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin)[0]; print(d.get('complete',False))")
+            echo "  [$i/36] status=$STATUS complete=$COMPLETE"
+            [ "$STATUS" = "4" ] && [ "$COMPLETE" = "True" ] && echo "✅ Deploy succeeded" && exit 0
+            [ "$STATUS" = "3" ] && [ "$COMPLETE" = "True" ] && echo "❌ Deploy failed" && exit 1
+            sleep 10
+          done
+          echo "❌ Deploy timed out after 6 minutes" && exit 1
 
       - name: Ensure app is started post-deploy
         run: |
