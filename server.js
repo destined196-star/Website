@@ -869,11 +869,12 @@ app.get('/api/admin/audit', requireAuth, (req, res) => {
 
 // ---- Clean admin URL: /admin serves the login panel (no link anywhere on the site) ----
 app.get('/admin', (req, res) => {
+  // Server-side auth guard — unauthenticated requests never receive admin.html
+  if (!req.session?.admin) return res.redirect(302, '/login.html');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
-// Keep the old .html path working but send people to the clean URL
 app.get('/admin.html', (req, res) => res.redirect(301, '/admin'));
 
 // ---- Static files: serve ONLY the public folder, never the project root (C1) ----

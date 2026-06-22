@@ -1204,150 +1204,29 @@ async function init() {
 }
 
 /* ══════════════════════════════════════════════
-   AUTH — login wall + session check
+   AUTH — server already verified session before
+   serving this page. Just wire the logout button.
    ══════════════════════════════════════════════ */
 (function () {
-  var overlay   = document.getElementById('loginOverlay');
-  var step1     = document.getElementById('loginStep1');
-  var step2fa   = document.getElementById('login2faStep');
-  var errEl     = document.getElementById('loginErr');
-  var userEl    = document.getElementById('loginUser');
-  var passEl    = document.getElementById('loginPass');
-  var totpEl    = document.getElementById('loginTotp');
-  var btn1      = document.getElementById('loginBtn');
-  var btn2fa    = document.getElementById('loginBtn2fa');
-  var pwToggle  = document.getElementById('loginPwToggle');
+  // Show logged-in username from /api/me
+  fetch(API_BASE + '/api/me', { credentials: 'include', headers: { 'X-Requested-With': 'fetch' } })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.admin) { window.location.replace('/login.html'); return; }
+      var lbl = document.getElementById('adminUserLabel');
+      if (lbl) lbl.textContent = '👤 ' + d.admin.username;
+    })
+    .catch(function () { window.location.replace('/login.html'); });
+
   var logoutBtn = document.getElementById('logoutBtn');
-  var userLabel = document.getElementById('adminUserLabel');
-
-  function showErr(msg) {
-    errEl.textContent = msg;
-    errEl.classList.add('show');
-  }
-  function clearErr() { errEl.classList.remove('show'); }
-
-  function enterAdmin(username) {
-    overlay.classList.add('hidden');
-    if (userLabel) userLabel.textContent = '👤 ' + username;
-    init();
-  }
-
-  // Show/hide password toggle
-  if (pwToggle) {
-    pwToggle.addEventListener('click', function () {
-      var isText = passEl.type === 'text';
-      passEl.type = isText ? 'password' : 'text';
-      pwToggle.textContent = isText ? '👁️' : '🙈';
-    });
-  }
-
-  // Step 1: password login
-  function doLogin() {
-    clearErr();
-    var username = (userEl.value || '').trim();
-    var password = passEl.value || '';
-    if (!username || !password) { showErr('Enter username and password.'); return; }
-    btn1.disabled = true;
-    btn1.textContent = 'Signing in…';
-    fetch(API_BASE + '/api/login', {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-      body: JSON.stringify({ username, password })
-    })
-    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d }; }); })
-    .then(function (result) {
-      btn1.disabled = false;
-      btn1.textContent = 'Sign In';
-      if (result.ok) { enterAdmin(result.d.username); return; }
-      if (result.d.error === '2fa_required') {
-        // Need TOTP — show step 2
-        step1.style.display = 'none';
-        step2fa.classList.add('show');
-        totpEl.focus();
-        return;
-      }
-      showErr(result.d.error || 'Invalid credentials.');
-    })
-    .catch(function () {
-      btn1.disabled = false;
-      btn1.textContent = 'Sign In';
-      showErr('Network error — please try again.');
-    });
-  }
-
-  // Step 2: TOTP verification
-  function do2fa() {
-    clearErr();
-    var token = (totpEl.value || '').replace(/\s/g, '');
-    if (token.length !== 6) { showErr('Enter the 6-digit code from your authenticator app.'); return; }
-    btn2fa.disabled = true;
-    btn2fa.textContent = 'Verifying…';
-    var username = (userEl.value || '').trim();
-    var password = passEl.value || '';
-    fetch(API_BASE + '/api/login', {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
-      body: JSON.stringify({ username, password, token })
-    })
-    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d }; }); })
-    .then(function (result) {
-      btn2fa.disabled = false;
-      btn2fa.textContent = 'Verify Code';
-      if (result.ok) { enterAdmin(result.d.username); return; }
-      showErr(result.d.error || 'Invalid code.');
-    })
-    .catch(function () {
-      btn2fa.disabled = false;
-      btn2fa.textContent = 'Verify Code';
-      showErr('Network error — please try again.');
-    });
-  }
-
-  btn1.addEventListener('click', doLogin);
-  if (btn2fa) btn2fa.addEventListener('click', do2fa);
-
-  // Enter key support
-  [userEl, passEl].forEach(function (el) {
-    el.addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
-  });
-  if (totpEl) totpEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') do2fa(); });
-
-  // Logout
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function () {
       fetch(API_BASE + '/api/logout', {
         method: 'POST', credentials: 'include',
         headers: { 'X-Requested-With': 'fetch' }
-      }).finally(function () {
-        // Reset and show login overlay
-        overlay.classList.remove('hidden');
-        step1.style.display = '';
-        step2fa.classList.remove('show');
-        clearErr();
-        passEl.value = '';
-        if (totpEl) totpEl.value = '';
-        userEl.focus();
-        if (userLabel) userLabel.textContent = '';
-      });
+      }).finally(function () { window.location.replace('/login.html'); });
     });
   }
-
-  // On page load: check existing session
-  fetch(API_BASE + '/api/me', {
-    credentials: 'include',
-    headers: { 'X-Requested-With': 'fetch' }
-  })
-  .then(function (r) { return r.json(); })
-  .then(function (d) {
-    if (d.admin) {
-      enterAdmin(d.admin.username);
-    } else {
-      overlay.classList.remove('hidden');
-      userEl.focus();
-    }
-  })
-  .catch(function () {
-    overlay.classList.remove('hidden');
-    userEl.focus();
-  });
 })();
+
+init();

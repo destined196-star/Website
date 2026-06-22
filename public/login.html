@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Login – Devi Murlika Gaur</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --maroon: #7b1d3a; --gold: #c9953a; --saffron: #e07b39;
+    --cream: #fdf6ed; --ink: #2d1a0e; --muted: #8a7060;
+  }
+  body {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #3b0a1e 0%, #6b1a34 100%);
+    font-family: 'Rosario', 'Segoe UI', sans-serif; padding: 20px;
+  }
+  .card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.45);
+    padding: 48px 44px 40px; width: 100%; max-width: 400px;
+    text-align: center;
+  }
+  .om { font-size: 2.8rem; display: block; margin-bottom: 6px; }
+  h1 { font-family: 'PT Serif', Georgia, serif; color: var(--maroon); font-size: 1.4rem; margin-bottom: 4px; font-weight: 700; }
+  .sub { font-size: 13px; color: var(--muted); margin-bottom: 30px; }
+  .field { text-align: left; margin-bottom: 16px; }
+  .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 6px; }
+  .field input {
+    width: 100%; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 8px;
+    font-size: 15px; font-family: inherit; outline: none; background: #fafafa;
+    transition: border-color .2s;
+  }
+  .field input:focus { border-color: var(--maroon); background: #fff; }
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 46px; }
+  .pw-eye {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 46px;
+    background: none; border: none; cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); border-radius: 0 8px 8px 0;
+  }
+  .pw-eye:hover { color: var(--maroon); }
+  #err {
+    background: #fdecea; color: #b0120a; border-radius: 7px;
+    padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; text-align: left;
+  }
+  #err.show { display: block; }
+  .btn {
+    width: 100%; padding: 13px; background: var(--maroon); color: #fff;
+    border: none; border-radius: 9px; font-size: 15px; font-weight: 700;
+    font-family: inherit; cursor: pointer; margin-top: 6px;
+    transition: background .2s; letter-spacing: .3px;
+  }
+  .btn:hover { background: #5a1030; }
+  .btn:disabled { opacity: .6; cursor: not-allowed; }
+  .divider { height: 1px; background: #eee; margin: 22px 0; }
+  #step2 { display: none; }
+  #step2.show { display: block; }
+  .otp-hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  .back-link { display: block; margin-top: 16px; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .back-link:hover { color: var(--maroon); }
+</style>
+</head>
+<body>
+<div class="card">
+  <span class="om">🙏</span>
+  <h1>Devi Murlika Gaur</h1>
+  <p class="sub">Admin Panel — Sign in to continue</p>
+
+  <div id="err"></div>
+
+  <!-- Step 1: username + password -->
+  <div id="step1">
+    <div class="field">
+      <label for="user">Username</label>
+      <input type="text" id="user" autocomplete="username" placeholder="admin" />
+    </div>
+    <div class="field">
+      <label for="pass">Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="pass" autocomplete="current-password" placeholder="••••••••••" />
+        <button type="button" class="pw-eye" id="eyeBtn" aria-label="Show password">👁️</button>
+      </div>
+    </div>
+    <button class="btn" id="loginBtn">Sign In</button>
+  </div>
+
+  <!-- Step 2: TOTP -->
+  <div id="step2">
+    <div class="divider"></div>
+    <p class="otp-hint" id="totpHint">Enter the 6-digit code from your authenticator app.</p>
+    <div class="field">
+      <label for="totp">Authenticator Code</label>
+      <input type="text" id="totp" inputmode="numeric" maxlength="6"
+             autocomplete="one-time-code" placeholder="000000"
+             style="letter-spacing:8px;font-size:22px;text-align:center" />
+    </div>
+    <button class="btn" id="verifyBtn">Verify &amp; Sign In</button>
+    <span class="back-link" id="backBtn">← Back</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  var userEl   = document.getElementById('user');
+  var passEl   = document.getElementById('pass');
+  var totpEl   = document.getElementById('totp');
+  var errEl    = document.getElementById('err');
+  var step1    = document.getElementById('step1');
+  var step2    = document.getElementById('step2');
+  var loginBtn = document.getElementById('loginBtn');
+  var verifyBtn= document.getElementById('verifyBtn');
+  var eyeBtn   = document.getElementById('eyeBtn');
+  var backBtn  = document.getElementById('backBtn');
+
+  function showErr(msg) { errEl.textContent = msg; errEl.classList.add('show'); }
+  function clearErr()   { errEl.classList.remove('show'); }
+
+  // Show/hide password
+  eyeBtn.addEventListener('click', function () {
+    var show = passEl.type === 'password';
+    passEl.type = show ? 'text' : 'password';
+    eyeBtn.textContent = show ? '🙈' : '👁️';
+  });
+
+  // Back button resets to step 1
+  backBtn.addEventListener('click', function () {
+    step2.classList.remove('show');
+    step1.style.display = '';
+    clearErr();
+    totpEl.value = '';
+  });
+
+  function setLoading(btn, loading, label) {
+    btn.disabled = loading;
+    btn.textContent = loading ? '…' : label;
+  }
+
+  function doLogin() {
+    clearErr();
+    var username = userEl.value.trim();
+    var password = passEl.value;
+    if (!username || !password) { showErr('Enter your username and password.'); return; }
+    setLoading(loginBtn, true, 'Sign In');
+    fetch('/api/login', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+      body: JSON.stringify({ username: username, password: password })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      setLoading(loginBtn, false, 'Sign In');
+      if (res.ok) { window.location.replace('/admin'); return; }
+      if (res.d.error === '2fa_required') {
+        step1.style.display = 'none';
+        step2.classList.add('show');
+        totpEl.focus();
+        return;
+      }
+      showErr(res.d.error || 'Invalid credentials.');
+    })
+    .catch(function () {
+      setLoading(loginBtn, false, 'Sign In');
+      showErr('Network error — please try again.');
+    });
+  }
+
+  function do2fa() {
+    clearErr();
+    var token = totpEl.value.replace(/\s/g, '');
+    if (token.length !== 6) { showErr('Enter the 6-digit code from your authenticator app.'); return; }
+    setLoading(verifyBtn, true, 'Verify & Sign In');
+    fetch('/api/login', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+      body: JSON.stringify({ username: userEl.value.trim(), password: passEl.value, token: token })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      setLoading(verifyBtn, false, 'Verify & Sign In');
+      if (res.ok) { window.location.replace('/admin'); return; }
+      showErr(res.d.error || 'Invalid code.');
+    })
+    .catch(function () {
+      setLoading(verifyBtn, false, 'Verify & Sign In');
+      showErr('Network error — please try again.');
+    });
+  }
+
+  loginBtn.addEventListener('click', doLogin);
+  verifyBtn.addEventListener('click', do2fa);
+  [userEl, passEl].forEach(function (el) {
+    el.addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  });
+  totpEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') do2fa(); });
+
+  // If already logged in, skip straight to admin
+  fetch('/api/me', { credentials: 'include', headers: { 'X-Requested-With': 'fetch' } })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { if (d.admin) window.location.replace('/admin'); })
+    .catch(function () {});
+
+  userEl.focus();
+})();
+</script>
+</body>
+</html>
