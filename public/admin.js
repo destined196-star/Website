@@ -1047,6 +1047,32 @@ async function saveSettings() {
 
 function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
 
+async function changePassword() {
+  var current  = ($('pwCurrent')  || {}).value || '';
+  var next     = ($('pwNew')      || {}).value || '';
+  var confirm  = ($('pwConfirm')  || {}).value || '';
+  var msgEl    = $('pwMsg');
+  function pwStatus(msg, ok) {
+    if (!msgEl) return;
+    msgEl.textContent = msg;
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? '#e3f3df' : '#fdecea';
+    msgEl.style.color      = ok ? '#3a7a2a' : '#b0120a';
+  }
+  if (!current)          return pwStatus('Enter your current password.', false);
+  if (!next)             return pwStatus('Enter a new password.', false);
+  if (next !== confirm)  return pwStatus('New passwords do not match.', false);
+  try {
+    await api('/api/admin/password', { method: 'PUT', body: JSON.stringify({ current, next }) });
+    pwStatus('✅ Password updated. You will be signed out on other devices.', true);
+    $('pwCurrent').value = '';
+    $('pwNew').value     = '';
+    $('pwConfirm').value = '';
+  } catch (e) {
+    pwStatus('❌ ' + e.message, false);
+  }
+}
+
 /* ══════════════════════════════════════════════
    EVENT DELEGATION — replaces all onclick= attrs
    ══════════════════════════════════════════════ */
@@ -1076,8 +1102,9 @@ function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
       addDonation:    function() { toggleForm('donForm'); },
       saveDonation:   function() { saveDonation(); },
       cancelDonation: function() { cancelForm('donForm'); },
-      downloadBackup: function() { downloadBackup(); },
-      saveSettings:   function() { saveSettings(); }
+      downloadBackup:  function() { downloadBackup(); },
+      saveSettings:    function() { saveSettings(); },
+      changePassword:  function() { changePassword(); }
     };
     var fn = map[btn.dataset.action];
     if (fn) fn();

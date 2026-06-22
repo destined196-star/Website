@@ -784,6 +784,25 @@
         <button class="btn-save" data-action="downloadBackup">⬇ Download DB Backup</button>
       </div>
 
+      <div class="a-panel">
+        <h3>🔒 Change Password</h3>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Min 10 characters — must include uppercase, lowercase, digit and symbol.</p>
+        <div class="f-field">
+          <label>Current Password</label>
+          <input type="password" id="pwCurrent" autocomplete="current-password" placeholder="Your current password" />
+        </div>
+        <div class="f-field">
+          <label>New Password</label>
+          <input type="password" id="pwNew" autocomplete="new-password" placeholder="New password (min 10 chars)" />
+        </div>
+        <div class="f-field">
+          <label>Confirm New Password</label>
+          <input type="password" id="pwConfirm" autocomplete="new-password" placeholder="Repeat new password" />
+        </div>
+        <div id="pwMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;font-weight:600"></div>
+        <button class="btn-save" data-action="changePassword">🔑 Update Password</button>
+      </div>
+
     </div>
 
     <!-- Payment & Donation Settings — full width below grid -->
