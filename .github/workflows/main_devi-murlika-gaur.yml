@@ -104,8 +104,23 @@ jobs:
             RESULT=$(curl -s \
               "https://devi-murlika-gaur-f3fwhfetbretezgm.scm.centralindia-01.azurewebsites.net/api/deployments" \
               -H "Authorization: Bearer $TOKEN")
-            STATUS=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin)[0]; print(d['status'])")
-            COMPLETE=$(echo "$RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin)[0]; print(d.get('complete',False))")
+            # Use python3 with error handling — empty array or malformed JSON returns "pending"
+            STATUS=$(echo "$RESULT" | python3 -c "
+import json,sys
+try:
+  d=json.load(sys.stdin)
+  print(d[0]['status'] if d else 'pending')
+except Exception:
+  print('pending')
+")
+            COMPLETE=$(echo "$RESULT" | python3 -c "
+import json,sys
+try:
+  d=json.load(sys.stdin)
+  print(d[0].get('complete',False) if d else False)
+except Exception:
+  print(False)
+")
             echo "  [$i/36] status=$STATUS complete=$COMPLETE"
             [ "$STATUS" = "4" ] && [ "$COMPLETE" = "True" ] && echo "✅ Deploy succeeded" && exit 0
             [ "$STATUS" = "3" ] && [ "$COMPLETE" = "True" ] && echo "❌ Deploy failed" && exit 1

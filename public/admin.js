@@ -257,7 +257,7 @@ async function loadEvents() {
       <div>
         <h4 style="color:var(--maroon);margin-bottom:4px">${esc(e.title)}</h4>
         ${e.description ? `<p style="color:var(--muted);font-size:14px;margin:0 0 4px">${esc(e.description)}</p>` : ''}
-        ${e.link ? `<a href="${esc(e.link)}" target="_blank" style="color:var(--saffron-dark);font-size:13px">🔗 View event</a>` : ''}
+        ${e.link ? `<a href="${esc(e.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--saffron-dark);font-size:13px">🔗 View event</a>` : ''}
         <div class="admin-item-bar">
           <button class="btn-edit ev-edit" data-id="${e.id}">✏️ Edit</button>
           <button class="btn-del ev-del" data-id="${e.id}">🗑 Delete</button>
@@ -750,7 +750,7 @@ async function loadVideos() {
       <div class="vc-body">
         <h4>${esc(v.title)}${v.featured ? '<span class="featured-badge">Featured</span>' : ''}</h4>
         ${v.description ? `<div class="meta" style="margin-bottom:4px">${esc(v.description)}</div>` : ''}
-        <div class="meta"><a href="${esc(v.youtube_url)}" target="_blank" style="color:var(--saffron-dark)">Watch on YouTube ↗</a></div>
+        <div class="meta"><a href="${esc(v.youtube_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--saffron-dark)">Watch on YouTube ↗</a></div>
       </div>
       <div class="admin-item-bar">
         <button class="btn-edit vid-edit" data-id="${v.id}">✏️ Edit</button>
@@ -835,12 +835,15 @@ async function loadPlaylists() {
     <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)">
       <div style="flex:1">
         <strong>${esc(p.name)}</strong>
-        <span style="color:var(--muted);font-size:13px;margin-left:8px">${p.video_count} videos</span>
+        <span style="color:var(--muted);font-size:13px;margin-left:8px">${esc(String(p.video_count))} videos</span>
         ${p.description ? `<br><small style="color:var(--muted)">${esc(p.description)}</small>` : ''}
       </div>
-      <button class="btn-del" style="font-size:12px" onclick="delPlaylist(${p.id},'${esc(p.name).replace(/'/g,"\\'")}')">🗑</button>
+      <button class="btn-del pl-del" style="font-size:12px" data-pl-id="${esc(String(p.id))}" data-pl-name="${esc(p.name)}">🗑</button>
     </div>
   `).join('');
+  el.querySelectorAll('.pl-del').forEach(btn =>
+    btn.addEventListener('click', () => delPlaylist(Number(btn.dataset.plId), btn.dataset.plName))
+  );
 }
 
 async function delPlaylist(id, name) {

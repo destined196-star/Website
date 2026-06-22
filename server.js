@@ -32,7 +32,10 @@ if (PROD) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535)
+  throw new Error(`Invalid PORT value: "${process.env.PORT}"`);
+
 app.disable('x-powered-by');          // M2: don't leak the stack
 app.set('trust proxy', 1);            // H5: correct secure-cookie behaviour behind Azure proxy
 
@@ -93,7 +96,8 @@ class SQLiteStore extends session.Store {
         sid TEXT PRIMARY KEY,
         sess TEXT NOT NULL,
         expired_at INTEGER NOT NULL
-      )
+      );
+      CREATE INDEX IF NOT EXISTS idx_sessions_expired ON sessions (expired_at);
     `);
     // Purge expired on startup
     db.prepare('DELETE FROM sessions WHERE expired_at < ?').run(Date.now());
@@ -402,6 +406,8 @@ app.post('/api/login', loginLimiter, (req, res) => {
 
   // Second factor (TOTP) if enabled
   if (row.totp_enabled) {
+    // Guard: totp_secret could be NULL if setup started but never confirmed
+    if (!row.totp_secret) return fail('totp-secret-missing');
     if (!token) { audit(username, ip, false, '2fa-required'); return res.status(401).json({ error: '2fa_required' }); }
     const ok = totpVerify({ token: String(token).replace(/\s/g, ''), secret: row.totp_secret, type: 'totp', window: 1 }).valid;
     if (!ok) {
@@ -427,7 +433,12 @@ app.get('/api/me', (req, res) => {
   const a = req.session?.admin;
   if (!a) return res.json({ admin: null });
   const row = db.prepare('SELECT totp_enabled FROM admin WHERE id=?').get(a.id);
-  const enabled = !!(row && row.totp_enabled);
+  // Admin row deleted after session was created → invalidate session
+  if (!row) {
+    req.session.destroy(() => {});
+    return res.json({ admin: null });
+  }
+  const enabled = !!row.totp_enabled;
   res.json({ admin: a, totp_enabled: enabled, must_setup_2fa: ENFORCE_2FA && !enabled });
 });
 
@@ -542,13 +553,13 @@ app.post('/api/admin/videos', requireAuth, (req, res) => {
   const { title, youtube_url, description, featured, sort_order } = req.body;
   if (!cap(title, 200).trim() || !cap(youtube_url, 500).trim()) return res.status(400).json({ error: 'title and youtube_url required' });
   const r = db.prepare('INSERT INTO videos (title,youtube_url,description,featured,sort_order) VALUES (?,?,?,?,?)')
-    .run(cap(title, 200), cap(youtube_url, 500), cap(description, 2000), featured ? 1 : 0, Number(sort_order) || 0);
+    .run(cap(title, 200), cap(youtube_url, 500), cap(description, 2000), Number(featured) ? 1 : 0, Number(sort_order) || 0);
   res.json({ id: r.lastInsertRowid });
 });
 app.put('/api/admin/videos/:id', requireAuth, (req, res) => {
   const { title, youtube_url, description, featured, sort_order } = req.body;
   db.prepare('UPDATE videos SET title=?,youtube_url=?,description=?,featured=?,sort_order=? WHERE id=?')
-    .run(cap(title, 200), cap(youtube_url, 500), cap(description, 2000), featured ? 1 : 0, Number(sort_order) || 0, req.params.id);
+    .run(cap(title, 200), cap(youtube_url, 500), cap(description, 2000), Number(featured) ? 1 : 0, Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
 });
 app.delete('/api/admin/videos/:id', requireAuth, (req, res) => {
@@ -807,8 +818,30 @@ app.use((err, req, res, next) => {
   res.status(500).sendFile(fs.existsSync(errPage) ? errPage : fallback);
 });
 
-// ---- Last-resort handlers: log, don't crash silently ----
-process.on('unhandledRejection', (reason) => console.error('[unhandledRejection]', reason));
-process.on('uncaughtException', (err) => console.error('[uncaughtException]', err.message));
+// ---- Last-resort handlers ----
+// unhandledRejection: log and exit — continuing in unknown state is dangerous
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+  process.exit(1);
+});
+// uncaughtException: flush WAL, then exit — PM2/Azure will restart cleanly
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err.message);
+  try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (_) {}
+  process.exit(1);
+});
 
-app.listen(PORT, () => console.log(`[server] http://localhost:${PORT}  (admin: /admin)`));
+// ---- Graceful shutdown: flush WAL + close DB before process exits ----
+function gracefulShutdown(signal) {
+  console.error(`[server] ${signal} received — shutting down gracefully`);
+  server.close(() => {
+    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); } catch (_) {}
+    process.exit(0);
+  });
+  // Force exit after 10 s if connections don't drain
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
+
+const server = app.listen(PORT, () => console.log(`[server] http://localhost:${PORT}  (admin: /admin)`));

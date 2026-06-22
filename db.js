@@ -200,11 +200,10 @@ if (db.prepare('SELECT COUNT(*) c FROM press_articles').get().c === 0) {
   ins.run('पट खुलते — Spiritual Programme Report', 'Nav Bharat Times', 'Nov 2021', 'The sacred programme "Patt Khulte" organized under the guidance of Devi Murlika Gaur Ji was a deeply moving spiritual event. The ceremony brought together devotees for prayers, bhajans and an enlightening discourse on the importance of devotion in daily life.', '/images/press-4.jpg', 4);
 }
 
-// Clean up any placeholder gallery images (picsum, broken URLs)
-const galBad = db.prepare("SELECT COUNT(*) c FROM gallery WHERE image LIKE '%picsum%' OR image LIKE '% %' OR image=''").get().c;
-if (galBad > 0) {
-  db.prepare("DELETE FROM gallery WHERE image LIKE '%picsum%' OR image LIKE '% %' OR image=''").run();
-}
+// Clean up placeholder images from seed data (picsum, broken URLs)
+// Applied to both gallery AND posts so deployed sites never show broken placeholders
+db.prepare("DELETE FROM gallery WHERE image LIKE '%picsum%' OR image LIKE '% %' OR image=''").run();
+db.prepare("UPDATE posts SET image='' WHERE image LIKE '%picsum%'").run();
 
 export { DB_PATH };
 export default db;
