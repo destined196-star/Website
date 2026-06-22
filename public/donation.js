@@ -9,7 +9,8 @@ function buildUpiUrl() {
   // pa (VPA) must NOT be percent-encoded per NPCI spec — @ stays literal
   return 'upi://pay?pa=' + UPI_ID
     + '&pn=' + encodeURIComponent(UPI_NAME)
-    + '&mc=0000&cu=INR&tn=Donation';
+    + '&mc=0000&cu=INR&tn=Donation'
+    + (upiAmt > 0 ? '&am=' + upiAmt : '');
 }
 
 function esc(str) {
@@ -50,6 +51,13 @@ function renderPaymentMethods(s) {
 
     // Amount selector
     html += '<div class="amt-section">'
+      + '<h4>Select Amount (Optional)</h4>'
+      + '<div class="amount-row">'
+      + [51,101,201,501,1001].map(function(a){ return '<button type="button" class="amt-btn" data-amt="'+a+'">₹'+a+'</button>'; }).join('')
+      + '</div>'
+      + '<div class="custom-amt-wrap">'
+      + '<span>₹</span><input type="number" id="customAmt" placeholder="Custom amount" min="1" step="1" />'
+      + '</div>'
       + '<a id="upiPayBtn" href="' + buildUpiUrl() + '" class="btn" style="width:100%;display:block;text-align:center">💳 Pay with UPI App</a>'
       + '</div>';
   }
@@ -123,6 +131,44 @@ function wireUpi() {
       } else {
         prompt('Copy this UPI ID:', UPI_ID);
       }
+    });
+  }
+
+  // Amount selector — preset buttons
+  var amtSection = document.querySelector('.amt-section');
+  var payBtn = document.getElementById('upiPayBtn');
+  var customAmtEl = document.getElementById('customAmt');
+
+  function updatePayBtn() {
+    if (payBtn) payBtn.href = buildUpiUrl();
+  }
+
+  if (amtSection) {
+    amtSection.addEventListener('click', function (e) {
+      var btn = e.target.closest('.amt-btn');
+      if (!btn) return;
+      var amt = parseInt(btn.dataset.amt, 10);
+      // Toggle off if already selected
+      if (upiAmt === amt) {
+        upiAmt = 0;
+        btn.classList.remove('sel');
+      } else {
+        upiAmt = amt;
+        amtSection.querySelectorAll('.amt-btn').forEach(function (b) { b.classList.remove('sel'); });
+        btn.classList.add('sel');
+      }
+      if (customAmtEl) customAmtEl.value = '';
+      updatePayBtn();
+    });
+  }
+
+  // Custom amount input
+  if (customAmtEl) {
+    customAmtEl.addEventListener('input', function () {
+      var v = parseFloat(this.value);
+      upiAmt = (v > 0) ? v : 0;
+      if (amtSection) amtSection.querySelectorAll('.amt-btn').forEach(function (b) { b.classList.remove('sel'); });
+      updatePayBtn();
     });
   }
 }

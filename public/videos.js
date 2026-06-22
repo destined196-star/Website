@@ -22,7 +22,7 @@
     // Build nav pills
     if (nav) {
       nav.innerHTML = pls.map(function(p, i) {
-        return '<a href="#pl-'+p.id+'" data-pl="'+p.id+'">'+esc(p.name.split('|')[0].trim())+' <span style="opacity:.6">('+p.video_count+')</span></a>';
+        return '<a href="#pl-'+p.id+'" data-pl="'+p.id+'">'+esc((p.name||'').split('|')[0].trim())+' <span style="opacity:.6">('+p.video_count+')</span></a>';
       }).join('');
 
       nav.addEventListener('click', function(e) {

@@ -45,7 +45,8 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc:  ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https://picsum.photos', 'https://*.picsum.photos',
         'https://i.ytimg.com', 'https://quickchart.io', 'https://api.qrserver.com',
         'https://*.googleusercontent.com', 'https://*.ggpht.com'],
@@ -665,7 +666,16 @@ app.put('/api/admin/password', requireAuth, (req, res) => {
 
 // ---- Two-factor (TOTP) management ----
 // Step 1: generate a secret + QR for the authenticator app (not yet enabled).
+// If 2FA is already active, require the current password before overwriting the
+// active secret (prevents an attacker with a stolen session from silently
+// disabling 2FA by simply calling this endpoint).
 app.post('/api/admin/2fa/setup', requireAuth, async (req, res) => {
+  const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
+  if (row.totp_enabled) {
+    if (!req.body.password) return res.status(400).json({ error: 'current password required to re-setup 2FA' });
+    if (!bcrypt.compareSync(req.body.password || '', row.password_hash))
+      return res.status(400).json({ error: 'current password wrong' });
+  }
   const base32 = totpGenerateSecret();
   const otpauthUrl = totpGenerateURI({ label: req.session.admin.username, issuer: 'DeviMurlikaGaur', secret: base32 });
   // Store provisional secret; only flips to enabled once a valid code is confirmed.

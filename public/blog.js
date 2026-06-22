@@ -28,7 +28,8 @@
     modalImg.src = '';
   }
 
-  document.getElementById('bpModalClose').addEventListener('click', closeModal);
+  var bpModalClose = document.getElementById('bpModalClose');
+  if (bpModalClose) bpModalClose.addEventListener('click', closeModal);
   modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
 
