@@ -7,7 +7,7 @@
   var modalContent = document.getElementById('bpModalContent');
 
   function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-  function safeUrl(u) { return /^https?:\/\//i.test(u||'') ? u : ''; }
+  function safeUrl(u) { return /^(https?:\/\/|\/)/i.test(u||'') ? u : ''; }
 
   function openModal(p) {
     if (p.image && safeUrl(p.image)) {

@@ -175,13 +175,12 @@ function requireAuth(req, res, next) {
 
 // ================= PUBLIC API =================
 
-// Settings keys that must never be served to unauthenticated visitors
-const PRIVATE_SETTINGS = new Set(['bank_account_number', 'bank_ifsc', 'bank_branch', 'bank_account_name']);
-
-// Site settings (links, bio, phone) — public read (private financial details filtered out)
+// Site settings — public read.
+// Bank transfer details (account_number, IFSC etc.) are intentionally included:
+// donors need them to wire money; they appear on the public donation page anyway.
+// No env-level secrets are stored in the settings table (those stay in .env).
 app.get('/api/settings', (req, res) => {
-  const rows = db.prepare('SELECT key, value FROM settings').all()
-    .filter(r => !PRIVATE_SETTINGS.has(r.key));
+  const rows = db.prepare('SELECT key, value FROM settings').all();
   res.json(Object.fromEntries(rows.map(r => [r.key, r.value])));
 });
 
@@ -704,7 +703,7 @@ const UPLOAD_DIR = process.env.WEBSITE_INSTANCE_ID
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 // On Azure, public/uploads isn't the same dir, so serve /home/uploads explicitly
 if (process.env.WEBSITE_INSTANCE_ID) {
-  app.use('/uploads', express.static(UPLOAD_DIR));
+  app.use('/uploads', express.static(UPLOAD_DIR, { dotfiles: 'deny', index: false }));
 }
 
 // Magic-byte signatures for allowed image types

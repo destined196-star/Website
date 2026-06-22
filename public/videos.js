@@ -1,6 +1,9 @@
 (function() {
   var PLAY = '<span class="play"><svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg"><rect width="68" height="48" rx="14" fill="#ff0000" opacity=".9"/><polygon points="27,14 50,24 27,34" fill="#fff"/></svg></span>';
-  function vidId(url) { var m = (url||'').match(/[?&]v=([^&]+)/); return m ? m[1] : ''; }
+  function vidId(url) {
+    var m = (url||'').match(/[?&]v=([A-Za-z0-9_-]{11})/) || (url||'').match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
+    return m ? m[1] : '';
+  }
   function esc(s) { return String(s||'').replace(/[&<>"']/g, function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);}); }
 
   function videoCard(v) {
