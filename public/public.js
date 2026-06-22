@@ -47,9 +47,11 @@
   if (galWrap) {
     try {
       const imgs = await get('/api/gallery');
-      galWrap.innerHTML = imgs.map(g =>
-        `<a href="${esc(safeGalleryHref(g.caption || g.image))}" target="_blank" rel="noopener" title="Watch on YouTube"><img src="${esc(safeUrl(g.image))}" alt="Devi Murlika Gaur" /></a>`
-      ).join('') || '<p style="text-align:center;color:var(--muted)">No images yet.</p>';
+      galWrap.innerHTML = imgs.map(g => {
+        const href = esc(safeGalleryHref(g.caption || g.image));
+        const linkTitle = /youtube\.com|youtu\.be/i.test(g.caption || '') ? 'Watch on YouTube' : 'View image';
+        return `<a href="${href}" target="_blank" rel="noopener" title="${linkTitle}"><img src="${esc(safeUrl(g.image))}" alt="Devi Murlika Gaur" /></a>`;
+      }).join('') || '<p style="text-align:center;color:var(--muted)">No images yet.</p>';
     } catch (e) {}
   }
 

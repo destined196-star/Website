@@ -526,7 +526,12 @@ function fillGallery(g) {
   $('gImg').value = g.image || '';
   $('gCap').value = g.caption || '';
   $('gSort').value = g.sort_order || 0;
-  showForm('galUpload');
+  // Populate the visible edit form fields
+  const capEl = $('gEditCap'); if (capEl) capEl.value = g.caption || '';
+  const sortEl = $('gEditSort'); if (sortEl) sortEl.value = g.sort_order || 0;
+  const prevEl = $('gEditPreview');
+  if (prevEl) { prevEl.src = g.image || ''; prevEl.style.display = g.image ? 'block' : 'none'; }
+  showForm('galEditForm');
   switchTab('gallery');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -536,23 +541,32 @@ function clearGallery() {
   const gs = $('gSort'); if (gs) gs.value = 0;
   const gm = $('gUpMsg'); if (gm) gm.textContent = '';
   const gf = $('gFile'); if (gf) gf.value = '';
+  // Also clear edit form
+  const ec = $('gEditCap'); if (ec) ec.value = '';
+  const eso = $('gEditSort'); if (eso) eso.value = 0;
+  const ep = $('gEditPreview'); if (ep) { ep.src = ''; ep.style.display = 'none'; }
+  cancelForm('galEditForm');
 }
 
 async function saveGallery() {
   if (!$('gImg').value.trim()) { toast('Upload a photo first or paste an image URL', 'err'); return; }
   const id = $('gId').value;
+  // When editing (id set), read caption/sort from visible edit form fields
+  const caption = id ? (($('gEditCap') || {}).value || '') : (($('gCap') || {}).value || '');
+  const sort_order = id ? Number(($('gEditSort') || {}).value) || 0 : Number(($('gSort') || {}).value) || 0;
   try {
     await api('/api/admin/gallery' + (id ? '/' + id : ''), {
       method: id ? 'PUT' : 'POST',
       body: JSON.stringify({
         image: $('gImg').value,
-        caption: $('gCap').value,
-        sort_order: Number($('gSort').value) || 0
+        caption,
+        sort_order
       })
     });
     toast(id ? 'Image updated ✓' : 'Image added ✓');
     clearGallery();
     cancelForm('galUpload');
+    cancelForm('galEditForm');
     await loadGallery();
     buildCharts();
   } catch (e) { toast('Error: ' + e.message, 'err'); }
@@ -1006,7 +1020,7 @@ const SETTINGS_KEYS = [
 ];
 
 async function loadSettings() {
-  const s = await api('/api/settings').catch(() => ({}));
+  const s = await api('/api/admin/settings').catch(() => ({}));
   SETTINGS_KEYS.forEach(k => {
     const el = $('s_' + k);
     if (el) el.value = s[k] || '';
@@ -1047,6 +1061,8 @@ function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
       cancelPost:     function() { cancelForm('poForm'); clearPost(); },
       autoNumber:     function() { autoNumberGallery(); },
       addGallery:     function() { toggleForm('galUpload'); },
+      saveGallery:    function() { saveGallery(); },
+      cancelGallery:  function() { clearGallery(); cancelForm('galEditForm'); },
       clearBulk:      function() { clearBulkUpload(); },
       addVideo:       function() { toggleForm('vidForm'); },
       saveVideo:      function() { saveVideo(); },
@@ -1102,12 +1118,10 @@ async function init() {
   try {
     await Promise.all([
       loadMessages(), loadGallery(), loadEvents(),
-      loadPosts(), loadVideos(), loadPress()
+      loadPosts(), loadVideos(), loadPress(),
+      loadDonations(), loadPlaylists(), loadSettings()
     ]);
     buildCharts();
-    loadDonations();
-    loadPlaylists();
-    loadSettings();
   } catch (e) {
     console.error('Admin init error:', e);
     toast('Load error: ' + e.message, 'err');

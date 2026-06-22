@@ -136,6 +136,8 @@ app.use(session({
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'too many attempts, try later' } });
 const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
 const healthzLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+// Tight limiter for contact form + donation order — prevents spam/order-flooding
+const contactLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'too many submissions, please try again later' } });
 app.use('/api/', apiLimiter);
 
 // Health check (uptime monitoring)
@@ -173,9 +175,13 @@ function requireAuth(req, res, next) {
 
 // ================= PUBLIC API =================
 
-// Site settings (links, bio, phone) — public read
+// Settings keys that must never be served to unauthenticated visitors
+const PRIVATE_SETTINGS = new Set(['bank_account_number', 'bank_ifsc', 'bank_branch', 'bank_account_name']);
+
+// Site settings (links, bio, phone) — public read (private financial details filtered out)
 app.get('/api/settings', (req, res) => {
-  const rows = db.prepare('SELECT key, value FROM settings').all();
+  const rows = db.prepare('SELECT key, value FROM settings').all()
+    .filter(r => !PRIVATE_SETTINGS.has(r.key));
   res.json(Object.fromEntries(rows.map(r => [r.key, r.value])));
 });
 
@@ -276,7 +282,7 @@ app.get('/api/press', (req, res) => {
 });
 
 // Razorpay: create an order (needs RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in env)
-app.post('/api/donate/order', async (req, res) => {
+app.post('/api/donate/order', contactLimiter, async (req, res) => {
   const keyId = process.env.RAZORPAY_KEY_ID, secret = process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !secret) return res.status(400).json({ error: 'Razorpay not configured on server' });
   const amount = Math.min(1_000_000, Math.max(1, Number(req.body.amount) || 0)); // bounded (LOW)
@@ -315,7 +321,7 @@ app.post('/api/donate/verify', (req, res) => {
 
 // Visitor submits contact details
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-app.post('/api/contact', async (req, res, next) => {
+app.post('/api/contact', contactLimiter, async (req, res, next) => {
   try {
     // Honeypot: a hidden field real users never fill. Bots do → silently drop.
     if (req.body.company) return res.json({ ok: true });
@@ -435,6 +441,12 @@ app.get('/api/admin/messages', requireAuth, (req, res) => {
 app.delete('/api/admin/messages/:id', requireAuth, (req, res) => {
   db.prepare('DELETE FROM messages WHERE id=?').run(req.params.id);
   res.json({ ok: true });
+});
+
+// Admin-only settings read — returns ALL keys including private bank details
+app.get('/api/admin/settings', requireAuth, (req, res) => {
+  const rows = db.prepare('SELECT key, value FROM settings').all();
+  res.json(Object.fromEntries(rows.map(r => [r.key, r.value])));
 });
 
 // Settings update — only known keys (M6)

@@ -492,13 +492,34 @@
         </div>
         <button class="btn-save" id="bulkUploadBtn">📤 Upload</button>
       </div>
-      <!-- hidden single-upload fields kept for edit flow -->
+      <!-- hidden fields shared between upload and edit flows -->
       <input id="gFile" type="file" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none" />
-      <input id="gUpMsg" type="hidden" />
+      <div id="gUpMsg" style="margin-top:10px;font-size:14px;min-height:20px"></div>
       <input id="gImg" type="hidden" />
       <input id="gCap" type="hidden" />
       <input id="gSort" type="hidden" value="0" />
       <input id="gId" type="hidden" />
+    </div>
+
+    <!-- Edit-existing-image panel (opened by ✏️ Edit on a gallery card) -->
+    <div class="a-form-panel" id="galEditForm" style="display:none">
+      <h3>✏️ Edit Gallery Image</h3>
+      <div style="margin-bottom:14px">
+        <img id="gEditPreview" src="" alt="Current image" loading="lazy"
+          style="display:none;max-width:200px;max-height:160px;border-radius:8px;border:1px solid var(--line);margin-bottom:10px" />
+      </div>
+      <div class="f-field">
+        <label>Caption / YouTube link (optional)</label>
+        <input id="gEditCap" placeholder="e.g. https://youtu.be/… or a short caption" />
+      </div>
+      <div class="f-field" style="max-width:160px">
+        <label>Sort order</label>
+        <input id="gEditSort" type="number" value="0" min="0" max="9999" />
+      </div>
+      <div class="f-actions">
+        <button class="btn-save" data-action="saveGallery">💾 Save Changes</button>
+        <button class="btn-clear" data-action="cancelGallery">✕ Cancel</button>
+      </div>
     </div>
 
     <div class="a-panel">
