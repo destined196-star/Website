@@ -135,6 +135,9 @@ addCol('totp_secret', 'TEXT');
 addCol('totp_enabled', 'INTEGER DEFAULT 0');
 addCol('failed_attempts', 'INTEGER DEFAULT 0');
 addCol('locked_until', 'INTEGER DEFAULT 0');
+addCol('email', 'TEXT');
+addCol('pw_otp', 'TEXT');
+addCol('pw_otp_expires', 'INTEGER DEFAULT 0');
 
 // Seed admin from env (only if none exists). No insecure default password (C2).
 const adminCount = db.prepare('SELECT COUNT(*) c FROM admin').get().c;
@@ -147,6 +150,13 @@ if (adminCount === 0) {
   const hash = bcrypt.hashSync(pass, 12);
   db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run(user, hash);
   console.log(`[db] seeded admin user "${user}"`);
+}
+
+// Sync ADMIN_EMAIL env var → admin.email column on every startup (lets Azure app-setting control it)
+if (process.env.ADMIN_EMAIL) {
+  db.prepare('UPDATE admin SET email=? WHERE email IS NULL OR email=?')
+    .run(process.env.ADMIN_EMAIL, '');
+  console.log(`[db] admin email set to ${process.env.ADMIN_EMAIL}`);
 }
 
 // Seed default settings (social links + texts) once

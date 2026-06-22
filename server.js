@@ -657,15 +657,74 @@ app.delete('/api/admin/donations/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// Change admin password
-app.put('/api/admin/password', requireAuth, (req, res) => {
-  const { current, next } = req.body;
+// Update admin account email
+app.put('/api/admin/email', requireAuth, (req, res) => {
+  const { email } = req.body;
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return res.status(400).json({ error: 'invalid email address' });
+  db.prepare('UPDATE admin SET email=? WHERE id=?').run(email || null, req.session.admin.id);
+  res.json({ ok: true });
+});
+
+// Get admin account email (for pre-filling the field)
+app.get('/api/admin/account', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT email FROM admin WHERE id=?').get(req.session.admin.id);
+  res.json({ email: row?.email || '' });
+});
+
+// Step 1 of password change: validate current password + new password, send OTP to email
+app.post('/api/admin/password/otp', requireAuth, async (req, res) => {
+  const { current, next, confirm } = req.body;
   const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
   if (!bcrypt.compareSync(current || '', row.password_hash))
     return res.status(400).json({ error: 'current password wrong' });
   const problem = passwordProblem(next);
   if (problem) return res.status(400).json({ error: 'password needs ' + problem });
-  db.prepare('UPDATE admin SET password_hash=? WHERE id=?').run(bcrypt.hashSync(next, 12), row.id);
+  if (next !== confirm) return res.status(400).json({ error: 'passwords do not match' });
+  if (!row.email) return res.status(400).json({ error: 'no_email', message: 'Set your account email first — we need it to send the verification code.' });
+  if (!mailer)   return res.status(400).json({ error: 'no_smtp', message: 'Email not configured on this server. Contact your hosting provider.' });
+
+  // Generate 6-digit OTP, store hashed, expire in 10 min
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpHash = bcrypt.hashSync(otp, 8);   // cost 8 — fast, OTP is random enough
+  const expires = Date.now() + 10 * 60 * 1000;
+  db.prepare('UPDATE admin SET pw_otp=?, pw_otp_expires=? WHERE id=?').run(otpHash, expires, row.id);
+
+  try {
+    await mailer.sendMail({
+      from: `"Devi Murlika Gaur Admin" <${process.env.SMTP_USER}>`,
+      to: row.email,
+      subject: 'Admin password change — verification code',
+      text: `Your one-time verification code is: ${otp}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, change your password immediately and check your account security.`,
+      html: `<p>Your one-time verification code is:</p><h2 style="letter-spacing:8px;font-size:2rem">${otp}</h2><p>This code expires in <strong>10 minutes</strong>.</p><p style="color:#888;font-size:12px">If you did not request this, change your password immediately.</p>`
+    });
+  } catch (err) {
+    console.error('[pw-otp] mail error:', err.message);
+    return res.status(500).json({ error: 'Failed to send email. Check SMTP settings.' });
+  }
+  res.json({ ok: true, hint: `Code sent to ${row.email.replace(/(.{2}).+(@.+)/, '$1***$2')}` });
+});
+
+// Step 2 of password change: verify OTP and apply new password
+app.put('/api/admin/password', requireAuth, (req, res) => {
+  const { current, next, otp } = req.body;
+  const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
+  if (!bcrypt.compareSync(current || '', row.password_hash))
+    return res.status(400).json({ error: 'current password wrong' });
+  const problem = passwordProblem(next);
+  if (problem) return res.status(400).json({ error: 'password needs ' + problem });
+
+  // If admin has an email and OTP was issued, require it
+  if (row.email) {
+    if (!otp) return res.status(400).json({ error: 'otp_required' });
+    if (!row.pw_otp || !row.pw_otp_expires || Date.now() > row.pw_otp_expires)
+      return res.status(400).json({ error: 'Verification code expired. Request a new one.' });
+    if (!bcrypt.compareSync(String(otp).replace(/\s/g, ''), row.pw_otp))
+      return res.status(400).json({ error: 'Incorrect verification code.' });
+  }
+
+  db.prepare('UPDATE admin SET password_hash=?, pw_otp=NULL, pw_otp_expires=0 WHERE id=?')
+    .run(bcrypt.hashSync(next, 12), row.id);
   // Invalidate all OTHER sessions so a stolen session can't persist after password change
   db.prepare("DELETE FROM sessions WHERE sid <> ?").run(req.sessionID);
   res.json({ ok: true });

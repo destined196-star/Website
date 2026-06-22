@@ -1028,6 +1028,10 @@ async function loadSettings() {
     const el = $('s_' + k);
     if (el) el.value = s[k] || '';
   });
+  // Load admin email into account panel
+  const acc = await api('/api/admin/account').catch(() => ({}));
+  const emailEl = $('adminEmail');
+  if (emailEl && acc.email) emailEl.value = acc.email;
 }
 
 async function saveSettings() {
@@ -1047,30 +1051,68 @@ async function saveSettings() {
 
 function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
 
-async function changePassword() {
-  var current  = ($('pwCurrent')  || {}).value || '';
-  var next     = ($('pwNew')      || {}).value || '';
-  var confirm  = ($('pwConfirm')  || {}).value || '';
-  var msgEl    = $('pwMsg');
-  function pwStatus(msg, ok) {
-    if (!msgEl) return;
-    msgEl.textContent = msg;
-    msgEl.style.display = 'block';
-    msgEl.style.background = ok ? '#e3f3df' : '#fdecea';
-    msgEl.style.color      = ok ? '#3a7a2a' : '#b0120a';
-  }
-  if (!current)          return pwStatus('Enter your current password.', false);
-  if (!next)             return pwStatus('Enter a new password.', false);
-  if (next !== confirm)  return pwStatus('New passwords do not match.', false);
+function _pwStatus(elId, msg, ok) {
+  var el = $(elId); if (!el) return;
+  el.textContent = msg; el.style.display = 'block';
+  el.style.background = ok ? '#e3f3df' : '#fdecea';
+  el.style.color      = ok ? '#3a7a2a' : '#b0120a';
+}
+
+async function saveAdminEmail() {
+  var email = ($('adminEmail') || {}).value || '';
   try {
-    await api('/api/admin/password', { method: 'PUT', body: JSON.stringify({ current, next }) });
-    pwStatus('✅ Password updated. You will be signed out on other devices.', true);
-    $('pwCurrent').value = '';
-    $('pwNew').value     = '';
-    $('pwConfirm').value = '';
+    await api('/api/admin/email', { method: 'PUT', body: JSON.stringify({ email }) });
+    _pwStatus('emailMsg', '✅ Email saved.', true);
   } catch (e) {
-    pwStatus('❌ ' + e.message, false);
+    _pwStatus('emailMsg', '❌ ' + e.message, false);
   }
+}
+
+async function requestPwOtp() {
+  var current = ($('pwCurrent') || {}).value || '';
+  var next    = ($('pwNew')     || {}).value || '';
+  var confirm = ($('pwConfirm') || {}).value || '';
+  if (!current)         return _pwStatus('pwMsg', 'Enter your current password.', false);
+  if (!next)            return _pwStatus('pwMsg', 'Enter a new password.', false);
+  if (next !== confirm) return _pwStatus('pwMsg', 'New passwords do not match.', false);
+  try {
+    var d = await api('/api/admin/password/otp', { method: 'POST', body: JSON.stringify({ current, next, confirm }) });
+    // Show OTP step
+    $('pwStep1').style.display = 'none';
+    $('pwStep2').style.display = 'block';
+    if ($('pwOtpHint')) $('pwOtpHint').textContent = d.hint || 'Check your email for the verification code.';
+    if ($('pwOtp')) $('pwOtp').focus();
+  } catch (e) {
+    if (e.message === 'no_email') {
+      _pwStatus('pwMsg', '❌ Set your account email first (panel above).', false);
+    } else {
+      _pwStatus('pwMsg', '❌ ' + e.message, false);
+    }
+  }
+}
+
+async function confirmPwChange() {
+  var otp     = ($('pwOtp')     || {}).value || '';
+  var current = ($('pwCurrent') || {}).value || '';
+  var next    = ($('pwNew')     || {}).value || '';
+  if (!otp) return _pwStatus('pwMsg2', 'Enter the 6-digit code from your email.', false);
+  try {
+    await api('/api/admin/password', { method: 'PUT', body: JSON.stringify({ current, next, otp }) });
+    _pwStatus('pwMsg2', '✅ Password updated. Other sessions signed out.', true);
+    // Reset form
+    ['pwCurrent','pwNew','pwConfirm','pwOtp'].forEach(function(id){ var el=$(id); if(el) el.value=''; });
+    setTimeout(function(){ $('pwStep1').style.display='block'; $('pwStep2').style.display='none'; }, 2000);
+  } catch (e) {
+    _pwStatus('pwMsg2', '❌ ' + e.message, false);
+  }
+}
+
+function cancelPwChange() {
+  $('pwStep1').style.display = 'block';
+  $('pwStep2').style.display = 'none';
+  ['pwCurrent','pwNew','pwConfirm','pwOtp'].forEach(function(id){ var el=$(id); if(el) el.value=''; });
+  var m=$('pwMsg'); if(m) m.style.display='none';
+  var m2=$('pwMsg2'); if(m2) m2.style.display='none';
 }
 
 /* ══════════════════════════════════════════════
@@ -1104,7 +1146,10 @@ async function changePassword() {
       cancelDonation: function() { cancelForm('donForm'); },
       downloadBackup:  function() { downloadBackup(); },
       saveSettings:    function() { saveSettings(); },
-      changePassword:  function() { changePassword(); }
+      saveAdminEmail:  function() { saveAdminEmail(); },
+      requestPwOtp:    function() { requestPwOtp(); },
+      confirmPwChange: function() { confirmPwChange(); },
+      cancelPwChange:  function() { cancelPwChange(); }
     };
     var fn = map[btn.dataset.action];
     if (fn) fn();

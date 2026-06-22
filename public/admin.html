@@ -785,22 +785,54 @@
       </div>
 
       <div class="a-panel">
+        <h3>📧 Account Email</h3>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
+          Used to send a verification code before any password change. Required for email-verified password updates.
+        </p>
+        <div class="f-field">
+          <label>Admin Email Address</label>
+          <input type="email" id="adminEmail" autocomplete="email" placeholder="your@email.com" />
+        </div>
+        <div id="emailMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;font-weight:600"></div>
+        <button class="btn-save" data-action="saveAdminEmail">💾 Save Email</button>
+      </div>
+
+      <div class="a-panel">
         <h3>🔒 Change Password</h3>
-        <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Min 10 characters — must include uppercase, lowercase, digit and symbol.</p>
-        <div class="f-field">
-          <label>Current Password</label>
-          <input type="password" id="pwCurrent" autocomplete="current-password" placeholder="Your current password" />
+        <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Min 10 characters — uppercase, lowercase, digit and symbol required. A verification code will be sent to your account email.</p>
+
+        <!-- Step 1 -->
+        <div id="pwStep1">
+          <div class="f-field">
+            <label>Current Password</label>
+            <input type="password" id="pwCurrent" autocomplete="current-password" placeholder="Your current password" />
+          </div>
+          <div class="f-field">
+            <label>New Password</label>
+            <input type="password" id="pwNew" autocomplete="new-password" placeholder="New password (min 10 chars)" />
+          </div>
+          <div class="f-field">
+            <label>Confirm New Password</label>
+            <input type="password" id="pwConfirm" autocomplete="new-password" placeholder="Repeat new password" />
+          </div>
+          <div id="pwMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;font-weight:600"></div>
+          <button class="btn-save" data-action="requestPwOtp">📨 Send Verification Code</button>
         </div>
-        <div class="f-field">
-          <label>New Password</label>
-          <input type="password" id="pwNew" autocomplete="new-password" placeholder="New password (min 10 chars)" />
+
+        <!-- Step 2: OTP entry (shown after code sent) -->
+        <div id="pwStep2" style="display:none">
+          <div id="pwOtpHint" style="color:var(--muted);font-size:13px;margin-bottom:14px"></div>
+          <div class="f-field">
+            <label>Verification Code (from email)</label>
+            <input type="text" id="pwOtp" inputmode="numeric" maxlength="6"
+                   placeholder="6-digit code" style="letter-spacing:6px;font-size:20px;text-align:center" />
+          </div>
+          <div id="pwMsg2" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;font-weight:600"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn-save" data-action="confirmPwChange">🔑 Confirm Password Change</button>
+            <button class="btn-save" style="background:#888" data-action="cancelPwChange">✕ Cancel</button>
+          </div>
         </div>
-        <div class="f-field">
-          <label>Confirm New Password</label>
-          <input type="password" id="pwConfirm" autocomplete="new-password" placeholder="Repeat new password" />
-        </div>
-        <div id="pwMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;font-weight:600"></div>
-        <button class="btn-save" data-action="changePassword">🔑 Update Password</button>
       </div>
 
     </div>
