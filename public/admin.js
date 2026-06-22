@@ -959,8 +959,39 @@ async function loadDonations() {
           &nbsp;·&nbsp; ${fmtIST(d.created_at)}
         </div>
         ${d.reference ? `<div class="mc-body">Ref: ${esc(d.reference)}</div>` : ''}
+        <div class="admin-item-bar">
+          <button class="btn-del don-del" data-id="${d.id}">🗑 Delete</button>
+        </div>
       </div>`).join('')
     : '<p style="color:var(--muted)">No donations recorded yet.</p>';
+
+  el.querySelectorAll('.don-del').forEach(btn =>
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this donation record?')) return;
+      try {
+        await api('/api/admin/donations/' + btn.dataset.id, { method: 'DELETE' });
+        await loadDonations();
+        toast('Donation record deleted');
+      } catch (e) { toast(e.message, 'err'); }
+    })
+  );
+}
+
+async function saveDonation() {
+  const name = ($('don_name') || {}).value || '';
+  const email = ($('don_email') || {}).value || '';
+  const amount = ($('don_amount') || {}).value || '';
+  const method = ($('don_method') || {}).value || 'cash';
+  const reference = ($('don_reference') || {}).value || '';
+  if (!amount || Number(amount) <= 0) { toast('Enter a valid amount', 'err'); return; }
+  try {
+    await api('/api/admin/donations', { method: 'POST', body: JSON.stringify({ name, email, amount: Number(amount), method, reference }) });
+    cancelForm('donForm');
+    // Clear fields
+    ['don_name','don_email','don_amount','don_reference'].forEach(id => { const el=$(id); if(el) el.value=''; });
+    await loadDonations();
+    toast('Donation recorded ✓');
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 /* ══════════════════════════════════════════════
@@ -1023,6 +1054,9 @@ function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
       addPress:       function() { toggleForm('pressForm'); },
       savePress:      function() { savePress(); },
       cancelPress:    function() { cancelForm('pressForm'); clearPress(); },
+      addDonation:    function() { toggleForm('donForm'); },
+      saveDonation:   function() { saveDonation(); },
+      cancelDonation: function() { cancelForm('donForm'); },
       downloadBackup: function() { downloadBackup(); },
       saveSettings:   function() { saveSettings(); }
     };

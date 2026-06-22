@@ -599,7 +599,35 @@
 
   <!-- ══ DONATIONS ══ -->
   <div class="admin-section" id="s-donations">
-    <div class="a-tab-header"><h2>💛 Donation Records</h2></div>
+    <div class="a-tab-header">
+      <h2>💛 Donation Records</h2>
+      <button class="btn-add" data-action="addDonation">+ Add Offline Donation</button>
+    </div>
+
+    <!-- Manual donation form -->
+    <div class="a-panel" id="donForm" style="display:none;margin-bottom:18px">
+      <h3>Record Offline Donation</h3>
+      <div class="settings-grid">
+        <div class="f-field"><label>Donor Name</label><input id="don_name" placeholder="e.g. Ramesh Sharma" /></div>
+        <div class="f-field"><label>Email (optional)</label><input id="don_email" type="email" placeholder="donor@email.com" /></div>
+        <div class="f-field"><label>Amount (₹) *</label><input id="don_amount" type="number" min="1" placeholder="e.g. 501" /></div>
+        <div class="f-field"><label>Method</label>
+          <select id="don_method">
+            <option value="cash">Cash</option>
+            <option value="upi">UPI</option>
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="cheque">Cheque</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="f-field"><label>Reference / Note (optional)</label><input id="don_reference" placeholder="UTR, cheque no., etc." /></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px">
+        <button class="btn-save" data-action="saveDonation">💾 Save Donation</button>
+        <button class="btn-cancel" data-action="cancelDonation">Cancel</button>
+      </div>
+    </div>
+
     <div id="donList"><p style="color:var(--muted)">Loading…</p></div>
   </div>
 

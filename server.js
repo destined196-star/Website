@@ -84,13 +84,52 @@ if (PUBLIC_ORIGIN) {
   });
 }
 
+// ---- SQLite-backed session store (survives restarts/deploys, no extra deps) ----
+class SQLiteStore extends session.Store {
+  constructor() {
+    super();
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid TEXT PRIMARY KEY,
+        sess TEXT NOT NULL,
+        expired_at INTEGER NOT NULL
+      )
+    `);
+    // Purge expired on startup
+    db.prepare('DELETE FROM sessions WHERE expired_at < ?').run(Date.now());
+    // Periodic cleanup every hour
+    setInterval(() => {
+      db.prepare('DELETE FROM sessions WHERE expired_at < ?').run(Date.now());
+    }, 3600 * 1000).unref();
+  }
+  get(sid, cb) {
+    const row = db.prepare('SELECT sess, expired_at FROM sessions WHERE sid=?').get(sid);
+    if (!row || row.expired_at < Date.now()) return cb(null, null);
+    try { cb(null, JSON.parse(row.sess)); } catch (e) { cb(e); }
+  }
+  set(sid, sess, cb) {
+    const ttl = sess.cookie?.maxAge ?? 1800000;
+    const exp = Date.now() + ttl;
+    db.prepare('INSERT INTO sessions (sid,sess,expired_at) VALUES (?,?,?) ON CONFLICT(sid) DO UPDATE SET sess=excluded.sess,expired_at=excluded.expired_at')
+      .run(sid, JSON.stringify(sess), exp);
+    cb(null);
+  }
+  destroy(sid, cb) { db.prepare('DELETE FROM sessions WHERE sid=?').run(sid); cb(null); }
+  touch(sid, sess, cb) {
+    const ttl = sess.cookie?.maxAge ?? 1800000;
+    db.prepare('UPDATE sessions SET expired_at=? WHERE sid=?').run(Date.now() + ttl, sid);
+    cb(null);
+  }
+}
+
 app.use(session({
   name: 'sid',
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   rolling: true,   // idle timeout: each request resets the clock; inactivity expires the session
-  cookie: { httpOnly: true, sameSite: 'strict', secure: PROD, maxAge: 1000 * 60 * 30 } // 30 min idle
+  store: new SQLiteStore(),
+  cookie: { httpOnly: true, sameSite: 'strict', secure: PROD, maxAge: 1000 * 60 * 60 * 8 } // 8 h idle
 }));
 
 // ---- Rate limiting (H3) ----
@@ -556,6 +595,23 @@ app.delete('/api/admin/press/:id', requireAuth, (req, res) => {
 // Donations list
 app.get('/api/admin/donations', requireAuth, (req, res) => {
   res.json(db.prepare('SELECT * FROM donations ORDER BY id DESC').all());
+});
+
+// Manual donation entry (admin records offline cash/bank/UPI payments)
+app.post('/api/admin/donations', requireAuth, (req, res) => {
+  const { name, email, amount, method, reference } = req.body;
+  const amt = Math.max(0, Number(amount) || 0);
+  if (!amt) return res.status(400).json({ error: 'amount required' });
+  const r = db.prepare('INSERT INTO donations (name,email,amount,method,reference) VALUES (?,?,?,?,?)')
+    .run(String(name || '').slice(0, 120), String(email || '').slice(0, 160),
+      amt, String(method || 'manual').slice(0, 40), String(reference || '').slice(0, 80));
+  res.json({ ok: true, id: r.lastInsertRowid });
+});
+
+// Delete a donation record
+app.delete('/api/admin/donations/:id', requireAuth, (req, res) => {
+  db.prepare('DELETE FROM donations WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
 });
 
 // Change admin password
