@@ -141,8 +141,8 @@ const adminCount = db.prepare('SELECT COUNT(*) c FROM admin').get().c;
 if (adminCount === 0) {
   const user = process.env.ADMIN_USER || 'admin';
   const pass = process.env.ADMIN_PASS;
-  if (!pass || pass.length < 8) {
-    throw new Error('No admin exists yet. Set ADMIN_PASS (min 8 chars) in .env before first run.');
+  if (!pass || pass.length < 10) {
+    throw new Error('No admin exists yet. Set ADMIN_PASS (min 10 chars) in .env before first run.');
   }
   const hash = bcrypt.hashSync(pass, 12);
   db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run(user, hash);

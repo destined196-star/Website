@@ -306,7 +306,7 @@ app.post('/api/donate/order', contactLimiter, async (req, res) => {
 });
 
 // Verify a Razorpay payment signature BEFORE recording (H4). Never trust the client.
-app.post('/api/donate/verify', (req, res) => {
+app.post('/api/donate/verify', contactLimiter, (req, res) => {
   const secret = process.env.RAZORPAY_KEY_SECRET;
   if (!secret) return res.status(400).json({ error: 'not configured' });
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, name, email, amount } = req.body;
@@ -359,7 +359,12 @@ const MAX_FAILS = 3;             // failed tries before lockout
 const LOCK_MINUTES = 15;         // lockout duration
 
 // Strong-password policy: >=10 chars, upper, lower, digit, symbol; not a common one.
-const COMMON_PW = new Set(['password', 'changeme123', 'admin123', '12345678', 'qwerty123', 'password123']);
+const COMMON_PW = new Set([
+  'password','changeme123','admin123','12345678','qwerty123','password123',
+  'letmein','welcome1','monkey123','dragon123','master123','abc123456',
+  'iloveyou1','sunshine1','princess1','Password1','Password1!','Admin1234',
+  'Welcome123','Summer2024','Winter2024','Spring2024','Autumn2024',
+]);
 function passwordProblem(pw) {
   pw = String(pw || '');
   if (pw.length < 10) return 'at least 10 characters';
@@ -661,6 +666,8 @@ app.put('/api/admin/password', requireAuth, (req, res) => {
   const problem = passwordProblem(next);
   if (problem) return res.status(400).json({ error: 'password needs ' + problem });
   db.prepare('UPDATE admin SET password_hash=? WHERE id=?').run(bcrypt.hashSync(next, 12), row.id);
+  // Invalidate all OTHER sessions so a stolen session can't persist after password change
+  db.prepare("DELETE FROM sessions WHERE sid <> ?").run(req.sessionID);
   res.json({ ok: true });
 });
 
