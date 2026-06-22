@@ -343,17 +343,120 @@
   .admin-blog-grid { grid-template-columns: 1fr; }
   .admin-video-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Login overlay ── */
+#loginOverlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(135deg, #3b0a1e 0%, #6b1a34 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+#loginOverlay.hidden { display: none; }
+.login-card {
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  padding: 44px 40px 36px; width: 100%; max-width: 400px;
+  text-align: center;
+}
+.login-card .login-om {
+  font-size: 2.6rem; margin-bottom: 4px; display: block;
+}
+.login-card h2 {
+  font-family: 'PT Serif', Georgia, serif; color: var(--maroon);
+  font-size: 1.35rem; margin: 0 0 4px;
+}
+.login-card .login-sub {
+  font-size: 13px; color: var(--muted); margin-bottom: 28px;
+}
+.login-field { position: relative; margin-bottom: 16px; text-align: left; }
+.login-field label {
+  display: block; font-size: 12px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase; letter-spacing: .6px;
+  margin-bottom: 6px;
+}
+.login-field input {
+  width: 100%; padding: 11px 14px; border: 1.5px solid #ddd;
+  border-radius: 7px; font-size: 15px; font-family: inherit;
+  box-sizing: border-box; outline: none; transition: border-color .2s;
+  background: #fafafa;
+}
+.login-field input:focus { border-color: var(--maroon); background: #fff; }
+.login-pw-wrap { position: relative; }
+.login-pw-wrap input { padding-right: 44px; }
+.login-pw-toggle {
+  position: absolute; right: 0; top: 0; bottom: 0;
+  width: 44px; background: none; border: none; cursor: pointer;
+  font-size: 18px; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); border-radius: 0 7px 7px 0;
+}
+.login-pw-toggle:hover { color: var(--maroon); }
+#loginBtn {
+  width: 100%; padding: 13px; background: var(--maroon); color: #fff;
+  border: none; border-radius: 8px; font-size: 15px; font-weight: 700;
+  font-family: inherit; cursor: pointer; margin-top: 6px;
+  transition: background .2s; letter-spacing: .3px;
+}
+#loginBtn:hover { background: #5a1030; }
+#loginBtn:disabled { opacity: .6; cursor: not-allowed; }
+#loginErr {
+  background: #fdecea; color: #b0120a; border-radius: 7px;
+  padding: 10px 14px; font-size: 13px; margin-bottom: 14px;
+  text-align: left; display: none;
+}
+#loginErr.show { display: block; }
+#login2faStep { display: none; }
+#login2faStep.show { display: block; }
+.login-divider { height: 1px; background: #eee; margin: 20px 0; }
 </style>
 </head>
 <body>
+
+<!-- ══ Login Overlay ══ -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <span class="login-om">🙏</span>
+    <h2>Devi Murlika Gaur</h2>
+    <p class="login-sub">Admin Panel — Sign in to continue</p>
+
+    <div id="loginErr"></div>
+
+    <!-- Step 1: username + password -->
+    <div id="loginStep1">
+      <div class="login-field">
+        <label for="loginUser">Username</label>
+        <input type="text" id="loginUser" autocomplete="username" placeholder="admin" />
+      </div>
+      <div class="login-field">
+        <label for="loginPass">Password</label>
+        <div class="login-pw-wrap">
+          <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••••" />
+          <button type="button" class="login-pw-toggle" id="loginPwToggle" aria-label="Show/hide password">👁️</button>
+        </div>
+      </div>
+      <button id="loginBtn">Sign In</button>
+    </div>
+
+    <!-- Step 2: TOTP (shown only if 2FA enabled) -->
+    <div id="login2faStep">
+      <div class="login-divider"></div>
+      <div class="login-field">
+        <label for="loginTotp">Authenticator Code</label>
+        <input type="text" id="loginTotp" autocomplete="one-time-code"
+               inputmode="numeric" maxlength="6" placeholder="6-digit code" style="letter-spacing:6px;font-size:20px;text-align:center" />
+      </div>
+      <button id="loginBtn2fa" style="width:100%;padding:13px;background:var(--maroon);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .2s;letter-spacing:.3px">Verify Code</button>
+    </div>
+  </div>
+</div>
 
 <!-- Topbar -->
 <div class="topbar">
   <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
     <span>🙏 Devi Murlika Gaur <span class="admin-badge">ADMIN</span></span>
     <div class="topbar-admin-right">
-      <a href="index.html" target="_blank" rel="noopener noreferrer">View Site ↗</a>
-      <a href="index.html">Exit Admin</a>
+      <span id="adminUserLabel" style="color:#ffe9a0;font-size:13px;font-weight:600;opacity:.85"></span>
+      <a href="/" target="_blank" rel="noopener noreferrer">View Site ↗</a>
+      <a id="logoutBtn" style="cursor:pointer">Logout</a>
     </div>
   </div>
 </div>
