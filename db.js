@@ -16,6 +16,7 @@ const DB_DIR = path.dirname(DB_PATH);
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');   // enable CASCADE DELETE etc.
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS admin (
@@ -205,4 +206,5 @@ if (galBad > 0) {
   db.prepare("DELETE FROM gallery WHERE image LIKE '%picsum%' OR image LIKE '% %' OR image=''").run();
 }
 
+export { DB_PATH };
 export default db;

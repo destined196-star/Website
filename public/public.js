@@ -140,7 +140,7 @@
       } catch (e) {
         note.style.display = 'block';
         note.style.color = '#c0563c';
-        note.textContent = 'Could not send. Make sure the server is running.';
+        note.textContent = 'Could not send. Please try again.';
       }
     });
   }

@@ -12,7 +12,7 @@ import multer from 'multer';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import db from './db.js';
+import db, { DB_PATH } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.env.NODE_ENV === 'production';
@@ -493,7 +493,12 @@ app.put('/api/admin/posts/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 app.delete('/api/admin/posts/:id', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT image FROM posts WHERE id=?').get(req.params.id);
   db.prepare('DELETE FROM posts WHERE id=?').run(req.params.id);
+  if (row?.image?.startsWith('/uploads/')) {
+    const fp = path.join(UPLOAD_DIR, path.basename(row.image));
+    try { fs.unlinkSync(fp); } catch (_) {}
+  }
   res.json({ ok: true });
 });
 
@@ -512,7 +517,12 @@ app.put('/api/admin/gallery/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 app.delete('/api/admin/gallery/:id', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT image FROM gallery WHERE id=?').get(req.params.id);
   db.prepare('DELETE FROM gallery WHERE id=?').run(req.params.id);
+  if (row?.image?.startsWith('/uploads/')) {
+    const fp = path.join(UPLOAD_DIR, path.basename(row.image));
+    try { fs.unlinkSync(fp); } catch (_) {}
+  }
   res.json({ ok: true });
 });
 
@@ -588,7 +598,12 @@ app.put('/api/admin/press/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 app.delete('/api/admin/press/:id', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT image FROM press_articles WHERE id=?').get(req.params.id);
   db.prepare('DELETE FROM press_articles WHERE id=?').run(req.params.id);
+  if (row?.image?.startsWith('/uploads/')) {
+    const fp = path.join(UPLOAD_DIR, path.basename(row.image));
+    try { fs.unlinkSync(fp); } catch (_) {}
+  }
   res.json({ ok: true });
 });
 
@@ -659,14 +674,14 @@ app.put('/api/admin/2fa/disable', requireAuth, (req, res) => {
 
 // ---- DB backup: stream a consistent copy of the SQLite database (admin only) ----
 app.get('/api/admin/backup', requireAuth, (req, res) => {
-  if (!req.session?.admin) return res.status(401).json({ error: 'unauthorized' });
   try {
     db.pragma('wal_checkpoint(TRUNCATE)');           // flush WAL into the main file
-    const src = path.join(__dirname, 'data.db');
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     res.setHeader('Content-Disposition', `attachment; filename="backup-${stamp}.db"`);
     res.setHeader('Content-Type', 'application/octet-stream');
-    fs.createReadStream(src).pipe(res);
+    const stream = fs.createReadStream(DB_PATH);
+    stream.on('error', e => { console.error('[backup]', e.message); res.end(); });
+    stream.pipe(res);
   } catch (e) { console.error('[backup]', e.message); res.status(500).json({ error: 'backup failed' }); }
 });
 
@@ -776,7 +791,9 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('[error]', err.message);
   if (req.path.startsWith('/api/')) return res.status(500).json({ error: 'server error' });
-  res.status(500).sendFile(path.join(__dirname, 'public', '404.html'));
+  const errPage = path.join(__dirname, 'public', '500.html');
+  const fallback = path.join(__dirname, 'public', '404.html');
+  res.status(500).sendFile(fs.existsSync(errPage) ? errPage : fallback);
 });
 
 // ---- Last-resort handlers: log, don't crash silently ----
