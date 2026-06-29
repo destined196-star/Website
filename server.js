@@ -134,7 +134,7 @@ app.use(session({
   saveUninitialized: false,
   rolling: true,   // idle timeout: each request resets the clock; inactivity expires the session
   store: new SQLiteStore(),
-  cookie: { httpOnly: true, sameSite: 'strict', secure: PROD, maxAge: 1000 * 60 * 60 * 8 } // 8 h idle
+  cookie: { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 1000 * 60 * 60 * 8 } // 8 h idle
 }));
 
 // ---- Rate limiting (H3) ----
@@ -428,8 +428,13 @@ app.post('/api/login', loginLimiter, (req, res) => {
   req.session.regenerate(err => {
     if (err) return res.status(500).json({ error: 'session error' });
     req.session.admin = { id: row.id, username: row.username };
-    audit(username, ip, true, '');
-    res.json({ ok: true, username: row.username });
+    // Explicitly save session before responding so the cookie is persisted
+    // before the browser navigates to /admin on the next request.
+    req.session.save(saveErr => {
+      if (saveErr) return res.status(500).json({ error: 'session error' });
+      audit(username, ip, true, '');
+      res.json({ ok: true, username: row.username });
+    });
   });
 });
 
