@@ -814,49 +814,57 @@ function validateImageMagic(filepath) {
   return false;
 }
 
+// Normalise browser MIME quirks: image/jpg → image/jpeg, image/jfif → image/jpeg
+const ALLOWED_MIME = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/jfif']);
+const MIME_EXT = { 'image/jpeg': '.jpg', 'image/jpg': '.jpg', 'image/jfif': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: UPLOAD_DIR,
     filename: (req, file, cb) => {
-      const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' }[file.mimetype] || '';
-      cb(null, crypto.randomBytes(12).toString('hex') + ext);
+      cb(null, crypto.randomBytes(12).toString('hex') + (MIME_EXT[file.mimetype] || '.jpg'));
     }
   }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
-  fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
+  limits: { fileSize: 8 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIME.has(file.mimetype)) return cb(new Error(`Unsupported type ${file.mimetype}. Use jpg/png/webp/gif.`));
+    cb(null, true);
+  }
 });
 app.post('/api/admin/upload', requireAuth, (req, res) => {
   upload.single('image')(req, res, err => {
     if (err) return res.status(400).json({ error: err.message });
-    if (!req.file) return res.status(400).json({ error: 'image must be jpg/png/webp/gif' });
+    if (!req.file) return res.status(400).json({ error: 'No file received — use jpg/png/webp/gif' });
     if (!validateImageMagic(req.file.path)) {
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'file content does not match declared image type' });
+      return res.status(400).json({ error: 'File content does not match an image — rejected' });
     }
     res.json({ ok: true, url: '/uploads/' + req.file.filename });
   });
 });
 
-// Bulk upload — up to 8 images at once
+// Bulk upload — up to 20 images at once
 const uploadBulk = multer({
   storage: multer.diskStorage({
     destination: UPLOAD_DIR,
     filename: (req, file, cb) => {
-      const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' }[file.mimetype] || '';
-      cb(null, crypto.randomBytes(12).toString('hex') + ext);
+      cb(null, crypto.randomBytes(12).toString('hex') + (MIME_EXT[file.mimetype] || '.jpg'));
     }
   }),
-  limits: { fileSize: 50 * 1024 * 1024, files: 20 },
-  fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.mimetype))
+  limits: { fileSize: 8 * 1024 * 1024, files: 20 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_MIME.has(file.mimetype)) return cb(new Error(`Unsupported type ${file.mimetype}. Use jpg/png/webp/gif.`));
+    cb(null, true);
+  }
 });
 app.post('/api/admin/upload-bulk', requireAuth, (req, res) => {
   uploadBulk.array('images', 20)(req, res, err => {
     if (err) return res.status(400).json({ error: err.message });
-    if (!req.files || !req.files.length) return res.status(400).json({ error: 'No valid images received' });
+    if (!req.files || !req.files.length) return res.status(400).json({ error: 'No valid images received. Use jpg/png/webp/gif under 8 MB each.' });
     const checked = req.files.map(f => ({ file: f, ok: validateImageMagic(f.path) }));
-    checked.filter(r => !r.ok).forEach(r => fs.unlinkSync(r.file.path));
+    checked.filter(r => !r.ok).forEach(r => { try { fs.unlinkSync(r.file.path); } catch (_) {} });
     const valid = checked.filter(r => r.ok).map(r => r.file);
-    if (!valid.length) return res.status(400).json({ error: 'No valid image content detected' });
+    if (!valid.length) return res.status(400).json({ error: 'No valid image content detected — files may be corrupted' });
     const urls = valid.map(f => '/uploads/' + f.filename);
     res.json({ ok: true, urls });
   });

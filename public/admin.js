@@ -646,6 +646,7 @@ async function doBulkUpload() {
 
   let uploaded = 0;
   let failed = 0;
+  let lastErr = '';
   const total = bulkFiles.length;
 
   function updateProgress() {
@@ -675,6 +676,7 @@ async function doBulkUpload() {
         uploaded++;
       } catch (e) {
         failed++;
+        lastErr = e.message;
         console.error('Bulk upload error:', file.name, e.message);
       }
       updateProgress();
@@ -683,7 +685,12 @@ async function doBulkUpload() {
 
   if (btn) btn.disabled = false;
   if (statusEl) statusEl.textContent = `Done! ${uploaded} uploaded` + (failed ? `, ${failed} failed` : '');
-  toast(`${uploaded} image${uploaded !== 1 ? 's' : ''} added to gallery` + (failed ? ` (${failed} failed)` : '') + ' ✓');
+  if (uploaded > 0) {
+    toast(`${uploaded} image${uploaded !== 1 ? 's' : ''} added to gallery` + (failed ? ` (${failed} failed)` : '') + ' ✓');
+  } else {
+    toast(`All ${failed} upload${failed !== 1 ? 's' : ''} failed: ${lastErr || 'unknown error'}`, 'err');
+  }
+  if (failed > 0 && uploaded > 0) toast(`${failed} failed: ${lastErr}`, 'err');
 
   await loadGallery();
   buildCharts();
