@@ -151,12 +151,20 @@ if (adminCount === 0) {
   db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run(adminUser, hash);
   console.log(`[db] seeded admin user "${adminUser}"`);
 } else if (adminPass && adminPass.length >= 10) {
-  // Sync ADMIN_PASS env var → password_hash on every startup.
-  // Lets Azure App Settings act as a master password reset, and also clears any lockout.
-  const hash = bcrypt.hashSync(adminPass, 12);
-  db.prepare('UPDATE admin SET password_hash=?, failed_attempts=0, locked_until=0 WHERE username=?')
-    .run(hash, adminUser);
-  console.log(`[db] admin password synced from ADMIN_PASS env var`);
+  // Sync ADMIN_PASS env var on startup — master password reset via Azure App Settings.
+  // Compare first so we only rehash when the password actually changed (avoids slow bcrypt on every cold start).
+  const existing = db.prepare('SELECT password_hash, failed_attempts, locked_until FROM admin WHERE username=?').get(adminUser);
+  if (existing && !bcrypt.compareSync(adminPass, existing.password_hash)) {
+    // Password changed — update hash (cost 10: fast enough for startup, still secure for admin reset)
+    const hash = bcrypt.hashSync(adminPass, 10);
+    db.prepare('UPDATE admin SET password_hash=?, failed_attempts=0, locked_until=0 WHERE username=?')
+      .run(hash, adminUser);
+    console.log('[db] admin password updated from ADMIN_PASS env var');
+  } else if (existing && (existing.failed_attempts > 0 || existing.locked_until > 0)) {
+    // Password unchanged but account locked — clear the lockout only
+    db.prepare('UPDATE admin SET failed_attempts=0, locked_until=0 WHERE username=?').run(adminUser);
+    console.log('[db] admin lockout cleared');
+  }
 }
 
 // Sync ADMIN_EMAIL env var → admin.email column on every startup (lets Azure app-setting control it)

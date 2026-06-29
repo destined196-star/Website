@@ -492,40 +492,43 @@ app.put('/api/admin/settings', requireAuth, (req, res) => {
 // Length cap helper (defense-in-depth on admin inputs)
 const cap = (v, n) => String(v ?? '').slice(0, n);
 
+// Thin try/catch wrapper so every DB error returns JSON 500 instead of leaking stack traces
+const dbRoute = fn => (req, res, next) => { try { fn(req, res); } catch (e) { console.error('[db]', e.message); res.status(500).json({ error: 'database error' }); } };
+
 // Events CRUD
-app.post('/api/admin/events', requireAuth, (req, res) => {
+app.post('/api/admin/events', requireAuth, dbRoute((req, res) => {
   const { title, description, day, month, link, sort_order } = req.body;
   if (!cap(title, 200).trim()) return res.status(400).json({ error: 'title required' });
   const r = db.prepare('INSERT INTO events (title,description,day,month,link,sort_order) VALUES (?,?,?,?,?,?)')
     .run(cap(title, 200), cap(description, 1000), cap(day, 8), cap(month, 12), cap(link, 500), Number(sort_order) || 0);
   res.json({ ok: true, id: r.lastInsertRowid });
-});
-app.put('/api/admin/events/:id', requireAuth, (req, res) => {
+}));
+app.put('/api/admin/events/:id', requireAuth, dbRoute((req, res) => {
   const { title, description, day, month, link, sort_order } = req.body;
   db.prepare('UPDATE events SET title=?,description=?,day=?,month=?,link=?,sort_order=? WHERE id=?')
     .run(cap(title, 200), cap(description, 1000), cap(day, 8), cap(month, 12), cap(link, 500), Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
-});
-app.delete('/api/admin/events/:id', requireAuth, (req, res) => {
+}));
+app.delete('/api/admin/events/:id', requireAuth, dbRoute((req, res) => {
   db.prepare('DELETE FROM events WHERE id=?').run(req.params.id);
   res.json({ ok: true });
-});
+}));
 
 // Posts CRUD
-app.post('/api/admin/posts', requireAuth, (req, res) => {
+app.post('/api/admin/posts', requireAuth, dbRoute((req, res) => {
   const { title, body, image, date_label } = req.body;
   if (!cap(title, 200).trim()) return res.status(400).json({ error: 'title required' });
   const r = db.prepare('INSERT INTO posts (title,body,image,date_label) VALUES (?,?,?,?)')
     .run(cap(title, 200), cap(body, 10000), cap(image, 500), cap(date_label, 40));
   res.json({ ok: true, id: r.lastInsertRowid });
-});
-app.put('/api/admin/posts/:id', requireAuth, (req, res) => {
+}));
+app.put('/api/admin/posts/:id', requireAuth, dbRoute((req, res) => {
   const { title, body, image, date_label } = req.body;
   db.prepare('UPDATE posts SET title=?,body=?,image=?,date_label=? WHERE id=?')
     .run(cap(title, 200), cap(body, 10000), cap(image, 500), cap(date_label, 40), req.params.id);
   res.json({ ok: true });
-});
-app.delete('/api/admin/posts/:id', requireAuth, (req, res) => {
+}));
+app.delete('/api/admin/posts/:id', requireAuth, dbRoute((req, res) => {
   const row = db.prepare('SELECT image FROM posts WHERE id=?').get(req.params.id);
   db.prepare('DELETE FROM posts WHERE id=?').run(req.params.id);
   if (row?.image?.startsWith('/uploads/')) {
@@ -533,23 +536,23 @@ app.delete('/api/admin/posts/:id', requireAuth, (req, res) => {
     try { fs.unlinkSync(fp); } catch (_) {}
   }
   res.json({ ok: true });
-});
+}));
 
 // Gallery CRUD
-app.post('/api/admin/gallery', requireAuth, (req, res) => {
+app.post('/api/admin/gallery', requireAuth, dbRoute((req, res) => {
   const { image, caption, sort_order } = req.body;
   if (!cap(image, 500).trim()) return res.status(400).json({ error: 'image required' });
   const r = db.prepare('INSERT INTO gallery (image,caption,sort_order) VALUES (?,?,?)')
     .run(cap(image, 500), cap(caption, 300), Number(sort_order) || 0);
   res.json({ ok: true, id: r.lastInsertRowid });
-});
-app.put('/api/admin/gallery/:id', requireAuth, (req, res) => {
+}));
+app.put('/api/admin/gallery/:id', requireAuth, dbRoute((req, res) => {
   const { image, caption, sort_order } = req.body;
   db.prepare('UPDATE gallery SET image=?,caption=?,sort_order=? WHERE id=?')
     .run(cap(image, 500), cap(caption, 300), Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
-});
-app.delete('/api/admin/gallery/:id', requireAuth, (req, res) => {
+}));
+app.delete('/api/admin/gallery/:id', requireAuth, dbRoute((req, res) => {
   const row = db.prepare('SELECT image FROM gallery WHERE id=?').get(req.params.id);
   db.prepare('DELETE FROM gallery WHERE id=?').run(req.params.id);
   if (row?.image?.startsWith('/uploads/')) {
@@ -557,80 +560,78 @@ app.delete('/api/admin/gallery/:id', requireAuth, (req, res) => {
     try { fs.unlinkSync(fp); } catch (_) {}
   }
   res.json({ ok: true });
-});
+}));
 
 // Videos admin
-app.post('/api/admin/videos', requireAuth, (req, res) => {
+app.post('/api/admin/videos', requireAuth, dbRoute((req, res) => {
   const { title, youtube_url, description, featured, sort_order } = req.body;
   if (!cap(title, 200).trim() || !cap(youtube_url, 500).trim()) return res.status(400).json({ error: 'title and youtube_url required' });
   const r = db.prepare('INSERT INTO videos (title,youtube_url,description,featured,sort_order) VALUES (?,?,?,?,?)')
     .run(cap(title, 200), cap(youtube_url, 500), cap(description, 2000), Number(featured) ? 1 : 0, Number(sort_order) || 0);
   res.json({ id: r.lastInsertRowid });
-});
-app.put('/api/admin/videos/:id', requireAuth, (req, res) => {
+}));
+app.put('/api/admin/videos/:id', requireAuth, dbRoute((req, res) => {
   const { title, youtube_url, description, featured, sort_order } = req.body;
   db.prepare('UPDATE videos SET title=?,youtube_url=?,description=?,featured=?,sort_order=? WHERE id=?')
     .run(cap(title, 200), cap(youtube_url, 500), cap(description, 2000), Number(featured) ? 1 : 0, Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
-});
-app.delete('/api/admin/videos/:id', requireAuth, (req, res) => {
+}));
+app.delete('/api/admin/videos/:id', requireAuth, dbRoute((req, res) => {
   db.prepare('DELETE FROM videos WHERE id=?').run(req.params.id);
   res.json({ ok: true });
-});
+}));
 
 // Playlists admin
-app.post('/api/admin/playlists', requireAuth, (req, res) => {
+app.post('/api/admin/playlists', requireAuth, dbRoute((req, res) => {
   const { name, description, cover_image, sort_order } = req.body;
   if (!name) return res.status(400).json({ error: 'name required' });
   const r = db.prepare('INSERT INTO playlists (name,description,cover_image,sort_order) VALUES (?,?,?,?)')
     .run(cap(name, 200), cap(description, 500) || '', cover_image || '', Number(sort_order) || 0);
   res.json({ ok: true, id: r.lastInsertRowid });
-});
-app.put('/api/admin/playlists/:id', requireAuth, (req, res) => {
+}));
+app.put('/api/admin/playlists/:id', requireAuth, dbRoute((req, res) => {
   const { name, description, cover_image, sort_order } = req.body;
   db.prepare('UPDATE playlists SET name=?,description=?,cover_image=?,sort_order=? WHERE id=?')
     .run(cap(name, 200), cap(description, 500) || '', cover_image || '', Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
-});
-app.delete('/api/admin/playlists/:id', requireAuth, (req, res) => {
+}));
+app.delete('/api/admin/playlists/:id', requireAuth, dbRoute((req, res) => {
   db.prepare('DELETE FROM playlist_videos WHERE playlist_id=?').run(req.params.id);
   db.prepare('DELETE FROM playlists WHERE id=?').run(req.params.id);
   res.json({ ok: true });
-});
+}));
 // Add/remove videos from playlist
-app.post('/api/admin/playlists/:id/videos', requireAuth, (req, res) => {
-  const { video_ids } = req.body;  // array of video IDs
+app.post('/api/admin/playlists/:id/videos', requireAuth, dbRoute((req, res) => {
+  const { video_ids } = req.body;
   if (!Array.isArray(video_ids)) return res.status(400).json({ error: 'video_ids array required' });
   const ids = video_ids.map(v => parseInt(v, 10)).filter(v => Number.isInteger(v) && v > 0);
   if (!ids.length) return res.status(400).json({ error: 'no valid video_ids' });
   const ins = db.prepare('INSERT OR IGNORE INTO playlist_videos (playlist_id,video_id,sort_order) VALUES (?,?,?)');
-  const tx = db.transaction(() => {
-    ids.forEach((vid, i) => ins.run(req.params.id, vid, i + 1));
-  });
+  const tx = db.transaction(() => { ids.forEach((vid, i) => ins.run(req.params.id, vid, i + 1)); });
   tx();
   res.json({ ok: true });
-});
-app.delete('/api/admin/playlists/:pid/videos/:vid', requireAuth, (req, res) => {
+}));
+app.delete('/api/admin/playlists/:pid/videos/:vid', requireAuth, dbRoute((req, res) => {
   db.prepare('DELETE FROM playlist_videos WHERE playlist_id=? AND video_id=?')
     .run(req.params.pid, req.params.vid);
   res.json({ ok: true });
-});
+}));
 
 // Press articles admin
-app.post('/api/admin/press', requireAuth, (req, res) => {
+app.post('/api/admin/press', requireAuth, dbRoute((req, res) => {
   const { title, publication, date_label, content, image, sort_order } = req.body;
   if (!cap(title, 200).trim()) return res.status(400).json({ error: 'title required' });
   const r = db.prepare('INSERT INTO press_articles (title,publication,date_label,content,image,sort_order) VALUES (?,?,?,?,?,?)')
     .run(cap(title, 200), cap(publication, 200), cap(date_label, 40), cap(content, 10000), cap(image, 500), Number(sort_order) || 0);
   res.json({ id: r.lastInsertRowid });
-});
-app.put('/api/admin/press/:id', requireAuth, (req, res) => {
+}));
+app.put('/api/admin/press/:id', requireAuth, dbRoute((req, res) => {
   const { title, publication, date_label, content, image, sort_order } = req.body;
   db.prepare('UPDATE press_articles SET title=?,publication=?,date_label=?,content=?,image=?,sort_order=? WHERE id=?')
     .run(cap(title, 200), cap(publication, 200), cap(date_label, 40), cap(content, 10000), cap(image, 500), Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
-});
-app.delete('/api/admin/press/:id', requireAuth, (req, res) => {
+}));
+app.delete('/api/admin/press/:id', requireAuth, dbRoute((req, res) => {
   const row = db.prepare('SELECT image FROM press_articles WHERE id=?').get(req.params.id);
   db.prepare('DELETE FROM press_articles WHERE id=?').run(req.params.id);
   if (row?.image?.startsWith('/uploads/')) {
@@ -638,15 +639,15 @@ app.delete('/api/admin/press/:id', requireAuth, (req, res) => {
     try { fs.unlinkSync(fp); } catch (_) {}
   }
   res.json({ ok: true });
-});
+}));
 
 // Donations list
-app.get('/api/admin/donations', requireAuth, (req, res) => {
+app.get('/api/admin/donations', requireAuth, dbRoute((req, res) => {
   res.json(db.prepare('SELECT * FROM donations ORDER BY id DESC').all());
-});
+}));
 
 // Manual donation entry (admin records offline cash/bank/UPI payments)
-app.post('/api/admin/donations', requireAuth, (req, res) => {
+app.post('/api/admin/donations', requireAuth, dbRoute((req, res) => {
   const { name, email, amount, method, reference } = req.body;
   const amt = Math.max(0, Number(amount) || 0);
   if (!amt) return res.status(400).json({ error: 'amount required' });
@@ -654,13 +655,13 @@ app.post('/api/admin/donations', requireAuth, (req, res) => {
     .run(String(name || '').slice(0, 120), String(email || '').slice(0, 160),
       amt, String(method || 'manual').slice(0, 40), String(reference || '').slice(0, 80));
   res.json({ ok: true, id: r.lastInsertRowid });
-});
+}));
 
 // Delete a donation record
-app.delete('/api/admin/donations/:id', requireAuth, (req, res) => {
+app.delete('/api/admin/donations/:id', requireAuth, dbRoute((req, res) => {
   db.prepare('DELETE FROM donations WHERE id=?').run(req.params.id);
   res.json({ ok: true });
-});
+}));
 
 // Update admin account email
 app.put('/api/admin/email', requireAuth, (req, res) => {

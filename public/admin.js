@@ -1222,6 +1222,14 @@ async function init() {
       if (!d.admin) { window.location.replace('/login.html'); return; }
       var lbl = document.getElementById('adminUserLabel');
       if (lbl) lbl.textContent = '👤 ' + d.admin.username;
+      // Show 2FA setup warning if enforced but not yet enabled
+      if (d.must_setup_2fa) {
+        var banner = document.createElement('div');
+        banner.id = 'twoFaBanner';
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#b45309;color:#fff;text-align:center;padding:10px 16px;font-size:14px;font-weight:600;';
+        banner.innerHTML = '⚠️ Two-factor authentication is required but not set up. <a href="#" onclick="showForm(\'twofa\');document.getElementById(\'twoFaBanner\').style.display=\'none\';return false;" style="color:#fde68a;text-decoration:underline;">Set up 2FA now →</a>';
+        document.body.prepend(banner);
+      }
     })
     .catch(function () { window.location.replace('/login.html'); });
 
