@@ -141,15 +141,22 @@ addCol('pw_otp_expires', 'INTEGER DEFAULT 0');
 
 // Seed admin from env (only if none exists). No insecure default password (C2).
 const adminCount = db.prepare('SELECT COUNT(*) c FROM admin').get().c;
+const adminUser = process.env.ADMIN_USER || 'admin';
+const adminPass = process.env.ADMIN_PASS;
 if (adminCount === 0) {
-  const user = process.env.ADMIN_USER || 'admin';
-  const pass = process.env.ADMIN_PASS;
-  if (!pass || pass.length < 10) {
+  if (!adminPass || adminPass.length < 10) {
     throw new Error('No admin exists yet. Set ADMIN_PASS (min 10 chars) in .env before first run.');
   }
-  const hash = bcrypt.hashSync(pass, 12);
-  db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run(user, hash);
-  console.log(`[db] seeded admin user "${user}"`);
+  const hash = bcrypt.hashSync(adminPass, 12);
+  db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run(adminUser, hash);
+  console.log(`[db] seeded admin user "${adminUser}"`);
+} else if (adminPass && adminPass.length >= 10) {
+  // Sync ADMIN_PASS env var → password_hash on every startup.
+  // Lets Azure App Settings act as a master password reset, and also clears any lockout.
+  const hash = bcrypt.hashSync(adminPass, 12);
+  db.prepare('UPDATE admin SET password_hash=?, failed_attempts=0, locked_until=0 WHERE username=?')
+    .run(hash, adminUser);
+  console.log(`[db] admin password synced from ADMIN_PASS env var`);
 }
 
 // Sync ADMIN_EMAIL env var → admin.email column on every startup (lets Azure app-setting control it)
