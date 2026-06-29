@@ -437,6 +437,11 @@ nav ul li.has-sub { position: relative; }
   nav .sub-menu { display: none !important; }
   nav .has-sub.open .sub-menu { display: flex !important; }
   nav ul li { border-left: 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+  /* has-sub row: link takes full width, + button sits at far right, vertically centred */
+  nav ul li.has-sub { display: flex; align-items: stretch; flex-wrap: wrap; }
+  nav ul li.has-sub > a { flex: 1; }
+  nav ul li.has-sub > .sub-toggle { display: flex; align-items: center; justify-content: center; width: 48px; flex-shrink: 0; margin: 0; border-radius: 0; border-left: 1px solid rgba(255,255,255,.15); }
+  nav ul li.has-sub > .sub-menu { flex: 0 0 100%; }
   nav a { padding: 12px 20px; border-left: 0; color: rgba(255,255,255,.9); }
   nav a:hover { background: var(--saffron); color: #fff; }
   nav a.active { background: var(--saffron); color: #fff; }
