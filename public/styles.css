@@ -361,20 +361,15 @@ nav ul li.has-sub { position: relative; }
 }
 .sub-menu li { display: block !important; border-left: 0 !important; border-bottom: 1px solid rgba(255,255,255,.1) !important; }
 .sub-menu li:last-child { border-bottom: 0 !important; }
-.sub-menu a { padding: 10px 18px !important; font-size: 13px !important; border-left: 0 !important; white-space: nowrap; display: block; }
+/* White text so items are visible on maroon background */
+.sub-menu a { padding: 10px 18px !important; font-size: 13px !important; border-left: 0 !important; white-space: nowrap; display: block; color: rgba(255,255,255,.9) !important; }
 .sub-menu a:hover { background: var(--saffron-dark) !important; color: #fff !important; }
+/* Desktop: open on hover */
+nav ul li.has-sub:hover > .sub-menu { display: flex; }
 .has-sub.open .sub-menu { display: flex; }
 
-/* Sub-menu toggle +/- button */
-.sub-toggle {
-  background: none; border: none; color: var(--ink); cursor: pointer;
-  font-size: 17px; font-weight: 700; width: 28px; height: 28px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 4px; margin-left: 2px; transition: background .2s, color .2s;
-  line-height: 1; padding: 0; flex-shrink: 0; vertical-align: middle;
-}
-.sub-toggle:hover { background: var(--saffron); color: #fff; }
-/* In open state: orange button */
+/* Sub-menu toggle +/- button — hidden on desktop, shown only in mobile menu */
+.sub-toggle { display: none; }
 .has-sub.open > .sub-toggle { background: var(--saffron); color: #fff; }
 
 /* ── Stats Bar ── */
@@ -440,12 +435,15 @@ nav ul li.has-sub { position: relative; }
   /* has-sub row: link takes full width, + button sits at far right, vertically centred */
   nav ul li.has-sub { display: flex; align-items: stretch; flex-wrap: wrap; }
   nav ul li.has-sub > a { flex: 1; }
-  nav ul li.has-sub > .sub-toggle { display: flex; align-items: center; justify-content: center; width: 48px; flex-shrink: 0; margin: 0; border-radius: 0; border-left: 1px solid rgba(255,255,255,.15); }
+  /* Re-enable sub-toggle in mobile */
+  .sub-toggle { display: flex; align-items: center; justify-content: center; width: 48px; height: auto; flex-shrink: 0; margin: 0; border-radius: 0; border-left: 1px solid rgba(255,255,255,.15); background: none; border-top: none; border-right: none; border-bottom: none; color: rgba(255,255,255,.9); cursor: pointer; font-size: 18px; font-weight: 700; padding: 0; }
   nav ul li.has-sub > .sub-menu { flex: 0 0 100%; }
   nav a { padding: 12px 20px; border-left: 0; color: rgba(255,255,255,.9); }
   nav a:hover { background: var(--saffron); color: #fff; }
   nav a.active { background: var(--saffron); color: #fff; }
-  .sub-toggle { color: rgba(255,255,255,.9); }
+  /* Override hover-open on mobile — only click/JS controls opening */
+  nav ul li.has-sub:hover > .sub-menu { display: none; }
+  nav .has-sub.open > .sub-menu { display: flex !important; }
   .sub-toggle:hover { background: rgba(255,255,255,.15); color: #fff; }
   .has-sub.open > .sub-toggle { background: var(--saffron); color: #fff; }
   .menu-toggle { display: block; color: var(--ink); }
