@@ -181,11 +181,12 @@ function requireAuth(req, res, next) {
 // ================= PUBLIC API =================
 
 // Site settings — public read.
-// Bank transfer details (account_number, IFSC etc.) are intentionally included:
-// donors need them to wire money; they appear on the public donation page anyway.
-// No env-level secrets are stored in the settings table (those stay in .env).
+// Sensitive bank transfer fields (account number, IFSC, branch) are excluded;
+// only bank name and UPI ID are public (enough for donors to initiate transfers).
+const PRIVATE_SETTINGS = new Set(['bank_account_number', 'bank_ifsc', 'bank_branch', 'bank_account_name']);
 app.get('/api/settings', (req, res) => {
-  const rows = db.prepare('SELECT key, value FROM settings').all();
+  const rows = db.prepare('SELECT key, value FROM settings').all()
+    .filter(r => !PRIVATE_SETTINGS.has(r.key));
   res.json(Object.fromEntries(rows.map(r => [r.key, r.value])));
 });
 
