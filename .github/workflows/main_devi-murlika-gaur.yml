@@ -1,161 +1,59 @@
-name: CI → Deploy → Health check
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy Node.js app to Azure Web App - devi-murlika-gaur
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
-# ────────────────────────────────────────────────
-# JOB 1: check  (syntax + smoke — runs on EVERY push/PR)
-# ────────────────────────────────────────────────
 jobs:
-  check:
-    name: Syntax & smoke checks
+  build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
         with:
           node-version: '22.x'
-          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci   # Linux runner → ABI 127 prebuilt binary for better-sqlite3
-
-      - name: Syntax check (server.js + db.js)
-        run: npm run lint
-
-      - name: Smoke checks
-        run: node scripts/smoke-test.mjs
-
-      - name: Create deployment zip (node_modules included — Linux-built)
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        run: |
-          zip -r app.zip . \
-            --exclude "*.git*" \
-            --exclude "*.DS_Store*" \
-            --exclude "data.db*" \
-            --exclude ".env*" \
-            --exclude ".claude/*" \
-            --exclude ".code-review-graph/*" \
-            --exclude "server.log" \
-            --exclude "app.zip" \
-            -q
-          echo "Zip size: $(du -sh app.zip | cut -f1)"
-
-      - name: Upload deployment zip
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: app-zip
-          path: app.zip
-          retention-days: 1
+          name: node-app
+          path: .
 
-# ────────────────────────────────────────────────
-# JOB 2: deploy  (only on push to main, only if check passed)
-# ────────────────────────────────────────────────
   deploy:
-    name: Deploy to Azure
     runs-on: ubuntu-latest
-    needs: check
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
     permissions:
-      id-token: write
-      contents: read
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     steps:
-      - name: Download deployment zip
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: app-zip
-
+          name: node-app
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_23861F91378D45498D0BD0E36C0DE013 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_B15966249E9242F1836391977943A813 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2B0599AD08E641FAB9E3592BEE43D283 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_89D77450367046C5BE4F42F1EB1AE929 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C163DC7D297C46EB8DCF73E0631DC9AC }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E9B93E8652534C80903592D565D67ED7 }}
 
-      - name: Enable + start Azure Web App
-        run: |
-          az webapp update --name devi-murlika-gaur --resource-group devi-murlika-rg --set enabled=true
-          az webapp start  --name devi-murlika-gaur --resource-group devi-murlika-rg
-
-      - name: Deploy via Kudu ZipDeploy (bypasses OneDeploy)
-        run: |
-          TOKEN=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
-          echo "Submitting ZipDeploy..."
-          HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "https://devi-murlika-gaur-f3fwhfetbretezgm.scm.centralindia-01.azurewebsites.net/api/zipdeploy?isAsync=true" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "Content-Type: application/zip" \
-            --data-binary @app.zip)
-          echo "Accepted: $HTTP"
-          [ "$HTTP" != "202" ] && echo "❌ ZipDeploy rejected (HTTP $HTTP)" && exit 1
-          echo "Polling deployment status..."
-          for i in $(seq 1 36); do
-            RESULT=$(curl -s \
-              "https://devi-murlika-gaur-f3fwhfetbretezgm.scm.centralindia-01.azurewebsites.net/api/deployments" \
-              -H "Authorization: Bearer $TOKEN")
-            STATUS=$(echo "$RESULT" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d[0]['status'] if d else 'pending')" 2>/dev/null || echo "pending")
-            COMPLETE=$(echo "$RESULT" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d[0].get('complete',False) if d else False)" 2>/dev/null || echo "False")
-            echo "  [$i/36] status=$STATUS complete=$COMPLETE"
-            [ "$STATUS" = "4" ] && [ "$COMPLETE" = "True" ] && echo "✅ Deploy succeeded" && exit 0
-            [ "$STATUS" = "3" ] && [ "$COMPLETE" = "True" ] && echo "❌ Deploy failed" && exit 1
-            sleep 10
-          done
-          echo "❌ Deploy timed out after 6 minutes" && exit 1
-
-      - name: Ensure app is started post-deploy
-        run: |
-          az webapp update --name devi-murlika-gaur --resource-group devi-murlika-rg --set enabled=true
-          az webapp start  --name devi-murlika-gaur --resource-group devi-murlika-rg
-
-# ────────────────────────────────────────────────
-# JOB 3: health-check  (pings /healthz after deploy; fails loudly on error)
-# ────────────────────────────────────────────────
-  health-check:
-    name: Post-deploy health check
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    permissions:
-      contents: read
-
-    steps:
-      - name: Wait for app to warm up
-        run: sleep 30
-
-      - name: Ping /healthz (retry up to 8×, 15 s apart)
-        run: |
-          URL="https://devi-murlika-gaur-f3fwhfetbretezgm.centralindia-01.azurewebsites.net/healthz"
-          for i in $(seq 1 8); do
-            echo "Attempt $i/8 …"
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL" || echo "000")
-            if [ "$STATUS" = "200" ]; then
-              echo "✅  /healthz returned 200 — deploy is healthy"
-              exit 0
-            fi
-            echo "  → got HTTP $STATUS, waiting 15 s …"
-            sleep 15
-          done
-          echo "❌  /healthz never returned 200 after 2 minutes — investigate!"
-          exit 1
-
-      - name: Check homepage loads
-        run: |
-          URL="https://devi-murlika-gaur-f3fwhfetbretezgm.centralindia-01.azurewebsites.net/"
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$URL" || echo "000")
-          if [ "$STATUS" = "200" ]; then
-            echo "✅  Homepage returned 200"
-          else
-            echo "⚠️  Homepage returned HTTP $STATUS"
-            exit 1
-          fi
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'devi-murlika-gaur'
+          slot-name: 'Production'
+          package: .
+          
