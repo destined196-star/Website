@@ -1282,3 +1282,45 @@ async function init() {
 })();
 
 init();
+
+// ── PWA: Service Worker + Install Prompt ──────────────────────────────────
+(function () {
+  // Register service worker (scoped to /admin)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin' })
+      .then(function (reg) {
+        console.log('[SW] registered, scope:', reg.scope);
+      })
+      .catch(function (err) {
+        console.warn('[SW] registration failed:', err.message);
+      });
+  }
+
+  // Show install button when browser fires beforeinstallprompt
+  var installPrompt = null;
+  var installBtn = document.getElementById('pwaInstallBtn');
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    installPrompt = e;
+    if (installBtn) installBtn.style.display = '';
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', function () {
+      if (!installPrompt) return;
+      installPrompt.prompt();
+      installPrompt.userChoice.then(function (choice) {
+        if (choice.outcome === 'accepted') {
+          installBtn.style.display = 'none';
+        }
+        installPrompt = null;
+      });
+    });
+  }
+
+  // Hide install button if already installed as standalone
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    if (installBtn) installBtn.style.display = 'none';
+  }
+})();

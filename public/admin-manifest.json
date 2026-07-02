@@ -1,0 +1,33 @@
+{
+  "name": "Devi Murlika Gaur — Admin",
+  "short_name": "DMG Admin",
+  "description": "Admin panel for Devi Murlika Gaur website",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1a0a00",
+  "background_color": "#1a0a00",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["productivity"],
+  "lang": "en"
+}

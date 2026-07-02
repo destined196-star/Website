@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Admin – Devi Murlika Gaur</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="manifest" href="/admin-manifest.json" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="DMG Admin" />
+<link rel="apple-touch-icon" href="/images/icon-192.png" />
+<meta name="theme-color" content="#1a0a00" />
 <link rel="stylesheet" href="styles.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
 <style>
@@ -355,6 +362,7 @@
     <div class="topbar-admin-right">
       <span id="adminUserLabel" style="color:#ffe9a0;font-size:13px;font-weight:600;opacity:.85"></span>
       <a href="/" target="_blank" rel="noopener noreferrer">View Site ↗</a>
+      <a id="pwaInstallBtn" style="display:none;cursor:pointer" title="Install as app">📲 Install App</a>
       <a id="logoutBtn" style="cursor:pointer">Logout</a>
     </div>
   </div>
