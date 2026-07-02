@@ -1003,22 +1003,6 @@ async function loadDonations() {
   );
 }
 
-async function saveDonation() {
-  const name = ($('don_name') || {}).value || '';
-  const email = ($('don_email') || {}).value || '';
-  const amount = ($('don_amount') || {}).value || '';
-  const method = ($('don_method') || {}).value || 'cash';
-  const reference = ($('don_reference') || {}).value || '';
-  if (!amount || Number(amount) <= 0) { toast('Enter a valid amount', 'err'); return; }
-  try {
-    await api('/api/admin/donations', { method: 'POST', body: JSON.stringify({ name, email, amount: Number(amount), method, reference }) });
-    cancelForm('donForm');
-    // Clear fields
-    ['don_name','don_email','don_amount','don_reference'].forEach(id => { const el=$(id); if(el) el.value=''; });
-    await loadDonations();
-    toast('Donation recorded ✓');
-  } catch (e) { toast(e.message, 'err'); }
-}
 
 /* ══════════════════════════════════════════════
    SETTINGS
@@ -1194,9 +1178,6 @@ async function confirm2fa() {
       addPress:       function() { toggleForm('pressForm'); },
       savePress:      function() { savePress(); },
       cancelPress:    function() { cancelForm('pressForm'); clearPress(); },
-      addDonation:    function() { toggleForm('donForm'); },
-      saveDonation:   function() { saveDonation(); },
-      cancelDonation: function() { cancelForm('donForm'); },
       downloadBackup:  function() { downloadBackup(); },
       saveSettings:    function() { saveSettings(); },
       saveAdminEmail:  function() { saveAdminEmail(); },
