@@ -615,7 +615,8 @@ app.post('/api/forgot-password', forgotLimiter, asyncRoute(async (req, res) => {
   const { username } = req.body;
   // Always respond ok=true to avoid username enumeration
   if (!username) return res.json({ ok: true, sent: true });
-  const row = db.prepare('SELECT id, email FROM admin WHERE username=?').get(String(username).trim());
+  const val = String(username).trim();
+  const row = db.prepare('SELECT id, email FROM admin WHERE username=? OR email=?').get(val, val);
   if (!row || !row.email || !mailer) return res.json({ ok: true, sent: true });
   const otp = String(Math.floor(100000 + Math.random() * 900000));
   const otpHash = bcrypt.hashSync(otp, 8);
@@ -639,7 +640,8 @@ app.post('/api/forgot-password', forgotLimiter, asyncRoute(async (req, res) => {
 app.post('/api/reset-password', forgotLimiter, (req, res) => {
   const { username, otp, new_password } = req.body;
   if (!username || !otp || !new_password) return res.status(400).json({ error: 'missing fields' });
-  const row = db.prepare('SELECT id, pw_otp, pw_otp_expires FROM admin WHERE username=?').get(String(username).trim());
+  const val = String(username).trim();
+  const row = db.prepare('SELECT id, pw_otp, pw_otp_expires FROM admin WHERE username=? OR email=?').get(val, val);
   if (!row) return res.status(400).json({ error: 'invalid code' }); // no enumeration
   if (!row.pw_otp || !row.pw_otp_expires || Date.now() > row.pw_otp_expires)
     return res.status(400).json({ error: 'code expired — request a new one' });

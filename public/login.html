@@ -3,126 +3,134 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Admin Login – Devi Murlika Gaur</title>
+<title>Admin Login</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --maroon: #7b1d3a; --gold: #c9953a; --saffron: #e07b39;
-    --cream: #fdf6ed; --ink: #2d1a0e; --muted: #8a7060;
+    --maroon: #7b1d3a; --gold: #c9953a; --ink: #3c3c3c; --muted: #777;
+    --border: #ddd; --bg: #f1f1f1; --white: #fff;
   }
   body {
-    min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #3b0a1e 0%, #6b1a34 100%);
-    font-family: 'Rosario', 'Segoe UI', sans-serif; padding: 20px;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--bg); font-family: -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, sans-serif; padding: 20px; color: var(--ink);
+  }
+  .logo {
+    font-size: 3rem; margin-bottom: 20px; display: block; text-align: center;
   }
   .card {
-    background: #fff; border-radius: 16px;
-    box-shadow: 0 24px 64px rgba(0,0,0,.45);
-    padding: 48px 44px 40px; width: 100%; max-width: 400px;
-    text-align: center;
+    background: var(--white); border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.13);
+    padding: 26px 24px 20px; width: 100%; max-width: 320px;
   }
-  .om { font-size: 2.8rem; display: block; margin-bottom: 6px; }
-  h1 { font-family: 'PT Serif', Georgia, serif; color: var(--maroon); font-size: 1.4rem; margin-bottom: 4px; font-weight: 700; }
-  .sub { font-size: 13px; color: var(--muted); margin-bottom: 30px; }
-  .field { text-align: left; margin-bottom: 16px; }
-  .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 6px; }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-size: 14px; font-weight: 600;
+    color: var(--ink); margin-bottom: 5px;
+  }
   .field input {
-    width: 100%; padding: 11px 14px; border: 1.5px solid #ddd; border-radius: 8px;
-    font-size: 15px; font-family: inherit; outline: none; background: #fafafa;
-    transition: border-color .2s;
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 3px; font-size: 14px; font-family: inherit;
+    outline: none; background: #fff; transition: border-color .15s;
+    color: var(--ink);
   }
-  .field input:focus { border-color: var(--maroon); background: #fff; }
+  .field input:focus { border-color: #4a90e2; box-shadow: 0 0 0 1px #4a90e2; }
   .pw-wrap { position: relative; }
-  .pw-wrap input { padding-right: 46px; }
+  .pw-wrap input { padding-right: 40px; }
   .pw-eye {
-    position: absolute; right: 0; top: 0; bottom: 0; width: 46px;
-    background: none; border: none; cursor: pointer; font-size: 18px;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--muted); border-radius: 0 8px 8px 0;
+    position: absolute; right: 0; top: 0; bottom: 0; width: 38px;
+    background: none; border: none; cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center; color: var(--muted);
   }
-  .pw-eye:hover { color: var(--maroon); }
+  .pw-eye:hover { color: var(--ink); }
   #err {
-    background: #fdecea; color: #b0120a; border-radius: 7px;
-    padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; text-align: left;
+    background: #fdecea; color: #b00020; border: 1px solid #f5c6cb;
+    border-radius: 3px; padding: 8px 12px; font-size: 13px;
+    margin-bottom: 14px; display: none;
   }
   #err.show { display: block; }
-  .btn {
-    width: 100%; padding: 13px; background: var(--maroon); color: #fff;
-    border: none; border-radius: 9px; font-size: 15px; font-weight: 700;
-    font-family: inherit; cursor: pointer; margin-top: 6px;
-    transition: background .2s; letter-spacing: .3px;
+  #successMsg {
+    background: #eaf4ea; color: #1e6e1e; border: 1px solid #b7dfb7;
+    border-radius: 3px; padding: 8px 12px; font-size: 13px;
+    margin-bottom: 14px; display: none;
   }
-  .btn:hover { background: #5a1030; }
-  .btn:disabled { opacity: .6; cursor: not-allowed; }
-  .divider { height: 1px; background: #eee; margin: 22px 0; }
-  #step2 { display: none; }
-  #step2.show { display: block; }
-  #stepForgot { display: none; }
-  #stepForgot.show { display: block; }
-  #stepReset { display: none; }
-  #stepReset.show { display: block; }
-  .otp-hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
-  .back-link { display: block; margin-top: 16px; font-size: 13px; color: var(--muted); cursor: pointer; }
-  .back-link:hover { color: var(--maroon); }
-  .forgot-link { display: block; margin-top: 14px; font-size: 13px; color: var(--muted); cursor: pointer; text-decoration: underline; }
-  .forgot-link:hover { color: var(--maroon); }
-  #successMsg { background:#edf7ed; color:#276221; border-radius:7px; padding:10px 14px; font-size:13px; margin-bottom:14px; display:none; text-align:left; }
   #successMsg.show { display: block; }
+  .btn {
+    width: 100%; padding: 9px 12px; background: var(--maroon); color: #fff;
+    border: none; border-radius: 3px; font-size: 14px; font-weight: 600;
+    font-family: inherit; cursor: pointer; transition: background .15s;
+  }
+  .btn:hover { background: #5e1530; }
+  .btn:disabled { opacity: .65; cursor: not-allowed; }
+  .links { text-align: center; margin-top: 14px; font-size: 13px; }
+  .links a { color: #4a90e2; text-decoration: none; cursor: pointer; }
+  .links a:hover { text-decoration: underline; }
+  .links .sep { color: var(--muted); margin: 0 6px; }
+  .otp-hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+  #step2, #stepForgot, #stepReset { display: none; }
+  #step2.show, #stepForgot.show, #stepReset.show { display: block; }
 </style>
 </head>
 <body>
-<div class="card">
-  <span class="om">🙏</span>
-  <h1>Devi Murlika Gaur</h1>
-  <p class="sub">Admin Panel — Sign in to continue</p>
+<span class="logo">🙏</span>
 
+<div class="card">
   <div id="err"></div>
+  <div id="successMsg"></div>
 
   <!-- Step 1: username + password -->
   <div id="step1">
     <div class="field">
-      <label for="user">Username</label>
-      <input type="text" id="user" autocomplete="off" placeholder="admin" />
+      <label for="user">Username or Email Address</label>
+      <input type="text" id="user" autocomplete="username" placeholder="" />
     </div>
     <div class="field">
       <label for="pass">Password</label>
       <div class="pw-wrap">
-        <input type="password" id="pass" autocomplete="off" placeholder="••••••••••" />
+        <input type="password" id="pass" autocomplete="current-password" placeholder="" />
         <button type="button" class="pw-eye" id="eyeBtn" aria-label="Show password">👁️</button>
       </div>
     </div>
-    <button class="btn" id="loginBtn">Sign In</button>
-    <a class="forgot-link" id="forgotLink">Forgot password?</a>
+    <button class="btn" id="loginBtn">Log In</button>
   </div>
 
-  <!-- Step forgot: enter username to receive OTP -->
-  <div id="stepForgot">
-    <div class="divider"></div>
-    <p class="otp-hint">Enter your username — we'll email a reset code to the registered address.</p>
+  <!-- Step 2: TOTP -->
+  <div id="step2">
+    <p class="otp-hint">Enter the 6-digit code from your authenticator app.</p>
     <div class="field">
-      <label for="forgotUser">Username</label>
-      <input type="text" id="forgotUser" autocomplete="off" placeholder="admin" />
+      <label for="totp">Authenticator Code</label>
+      <input type="text" id="totp" inputmode="numeric" maxlength="6"
+             autocomplete="one-time-code" placeholder="000000"
+             style="letter-spacing:6px;font-size:20px;text-align:center" />
     </div>
-    <button class="btn" id="sendOtpBtn">Send Reset Code</button>
-    <span class="back-link" id="forgotBackBtn">← Back to Sign In</span>
+    <button class="btn" id="verifyBtn">Verify &amp; Log In</button>
+  </div>
+
+  <!-- Step forgot: enter username or email -->
+  <div id="stepForgot">
+    <p class="otp-hint">Enter your username or email address. You will receive a link to create a new password via email.</p>
+    <div class="field">
+      <label for="forgotUser">Username or Email Address</label>
+      <input type="text" id="forgotUser" autocomplete="off" placeholder="" />
+    </div>
+    <button class="btn" id="sendOtpBtn">Get New Password</button>
   </div>
 
   <!-- Step reset: enter OTP + new password -->
   <div id="stepReset">
-    <div class="divider"></div>
-    <p class="otp-hint">Enter the 6-digit code sent to your email, then set a new password.</p>
-    <div id="successMsg"></div>
+    <p class="otp-hint">Enter the 6-digit code sent to your email, then choose a new password.</p>
     <div class="field">
       <label for="resetOtp">Reset Code</label>
       <input type="text" id="resetOtp" inputmode="numeric" maxlength="6"
              autocomplete="one-time-code" placeholder="000000"
-             style="letter-spacing:8px;font-size:22px;text-align:center" />
+             style="letter-spacing:6px;font-size:20px;text-align:center" />
     </div>
     <div class="field">
       <label for="newPass">New Password</label>
       <div class="pw-wrap">
-        <input type="password" id="newPass" autocomplete="new-password" placeholder="Min 10 chars, upper+lower+digit+symbol" />
+        <input type="password" id="newPass" autocomplete="new-password" placeholder="Min 10 chars" />
         <button type="button" class="pw-eye" id="eyeBtn2" aria-label="Show password">👁️</button>
       </div>
     </div>
@@ -131,22 +139,13 @@
       <input type="password" id="newPass2" autocomplete="new-password" placeholder="Repeat password" />
     </div>
     <button class="btn" id="resetBtn">Reset Password</button>
-    <span class="back-link" id="resetBackBtn">← Back to Sign In</span>
   </div>
+</div>
 
-  <!-- Step 2: TOTP -->
-  <div id="step2">
-    <div class="divider"></div>
-    <p class="otp-hint" id="totpHint">Enter the 6-digit code from your authenticator app.</p>
-    <div class="field">
-      <label for="totp">Authenticator Code</label>
-      <input type="text" id="totp" inputmode="numeric" maxlength="6"
-             autocomplete="one-time-code" placeholder="000000"
-             style="letter-spacing:8px;font-size:22px;text-align:center" />
-    </div>
-    <button class="btn" id="verifyBtn">Verify &amp; Sign In</button>
-    <span class="back-link" id="backBtn">← Back</span>
-  </div>
+<div class="links" id="pageLinks">
+  <a id="forgotLink">Lost your password?</a>
+  <span class="sep" id="backSep" style="display:none">|</span>
+  <a id="backBtn" style="display:none">← Log in</a>
 </div>
 
 <script src="/login.js"></script>
