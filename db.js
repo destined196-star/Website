@@ -138,6 +138,7 @@ addCol('locked_until', 'INTEGER DEFAULT 0');
 addCol('email', 'TEXT');
 addCol('pw_otp', 'TEXT');
 addCol('pw_otp_expires', 'INTEGER DEFAULT 0');
+addCol('totp_last_used', 'TEXT');
 
 // Seed admin from env (only if none exists). No insecure default password (C2).
 const adminCount = db.prepare('SELECT COUNT(*) c FROM admin').get().c;

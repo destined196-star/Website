@@ -331,9 +331,11 @@ app.post('/api/contact', contactLimiter, async (req, res, next) => {
     // Honeypot: a hidden field real users never fill. Bots do → silently drop.
     if (req.body.company) return res.json({ ok: true });
     let { name, email, phone, subject, message } = req.body;
-    name = String(name || '').trim(); email = String(email || '').trim();
+    // Fix: strip CR/LF to prevent email header injection
+    const stripCRLF = s => String(s || '').replace(/[\r\n]/g, ' ').trim();
+    name = stripCRLF(name); email = String(email || '').trim();
     message = String(message || '').trim();
-    phone = String(phone || '').trim(); subject = String(subject || '').trim();
+    phone = stripCRLF(phone); subject = stripCRLF(subject);
     if (!name || !email || !message) return res.status(400).json({ error: 'name, email, message required' });
     if (!EMAIL_RE.test(email) || email.length > 160) return res.status(400).json({ error: 'invalid email' });
     if (name.length > 120 || message.length > 4000 || phone.length > 30 || subject.length > 200)
@@ -416,12 +418,18 @@ app.post('/api/login', loginLimiter, (req, res) => {
     // Guard: totp_secret could be NULL if setup started but never confirmed
     if (!row.totp_secret) return fail('totp-secret-missing');
     if (!token) { audit(username, ip, false, '2fa-required'); return res.status(401).json({ error: '2fa_required' }); }
-    const ok = totpVerify({ token: String(token).replace(/\s/g, ''), secret: row.totp_secret, type: 'totp', window: 1 }).valid;
+    const cleanToken = String(token).replace(/\s/g, '');
+    const ok = totpVerify({ token: cleanToken, secret: row.totp_secret, type: 'totp', window: 1 }).valid;
     if (!ok) {
       const fails = (row.failed_attempts || 0) + 1;
       db.prepare('UPDATE admin SET failed_attempts=? WHERE id=?').run(fails, row.id);
       return fail('bad-2fa');
     }
+    // Fix: TOTP replay protection — reject same token within the same 30s time step
+    const timeStep = Math.floor(Date.now() / 30000).toString();
+    const replayKey = `${cleanToken}:${timeStep}`;
+    if (row.totp_last_used === replayKey) return fail('otp-replay');
+    db.prepare('UPDATE admin SET totp_last_used=? WHERE id=?').run(replayKey, row.id);
   }
 
   // Success: clear counters, regenerate session id (prevents session fixation)
@@ -886,6 +894,8 @@ app.get('/api/admin/audit', requireAuth, (req, res) => {
 app.get('/admin', (req, res) => {
   // Server-side auth guard — unauthenticated requests never receive admin.html
   if (!req.session?.admin) return res.redirect(302, '/login.html');
+  // NOTE: 2FA enforcement at this gate requires a standalone /2fa-setup.html page.
+  // Until that page exists, enforcement is client-side via must_setup_2fa flag from /api/me.
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
@@ -903,6 +913,11 @@ app.use((req, res) => {
 
 // ---- Central error handler (no stack leak to client) ----
 app.use((err, req, res, next) => {
+  // Fix: PayloadTooLargeError → 413 not 500
+  if (err.type === 'entity.too.large' || err.status === 413) {
+    if (req.path.startsWith('/api/')) return res.status(413).json({ error: 'request too large' });
+    return res.status(413).send('Request too large');
+  }
   console.error('[error]', err.message);
   if (req.path.startsWith('/api/')) return res.status(500).json({ error: 'server error' });
   const errPage = path.join(__dirname, 'public', '500.html');
