@@ -58,9 +58,17 @@
   .divider { height: 1px; background: #eee; margin: 22px 0; }
   #step2 { display: none; }
   #step2.show { display: block; }
+  #stepForgot { display: none; }
+  #stepForgot.show { display: block; }
+  #stepReset { display: none; }
+  #stepReset.show { display: block; }
   .otp-hint { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
   .back-link { display: block; margin-top: 16px; font-size: 13px; color: var(--muted); cursor: pointer; }
   .back-link:hover { color: var(--maroon); }
+  .forgot-link { display: block; margin-top: 14px; font-size: 13px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  .forgot-link:hover { color: var(--maroon); }
+  #successMsg { background:#edf7ed; color:#276221; border-radius:7px; padding:10px 14px; font-size:13px; margin-bottom:14px; display:none; text-align:left; }
+  #successMsg.show { display: block; }
 </style>
 </head>
 <body>
@@ -85,6 +93,45 @@
       </div>
     </div>
     <button class="btn" id="loginBtn">Sign In</button>
+    <a class="forgot-link" id="forgotLink">Forgot password?</a>
+  </div>
+
+  <!-- Step forgot: enter username to receive OTP -->
+  <div id="stepForgot">
+    <div class="divider"></div>
+    <p class="otp-hint">Enter your username — we'll email a reset code to the registered address.</p>
+    <div class="field">
+      <label for="forgotUser">Username</label>
+      <input type="text" id="forgotUser" autocomplete="off" placeholder="admin" />
+    </div>
+    <button class="btn" id="sendOtpBtn">Send Reset Code</button>
+    <span class="back-link" id="forgotBackBtn">← Back to Sign In</span>
+  </div>
+
+  <!-- Step reset: enter OTP + new password -->
+  <div id="stepReset">
+    <div class="divider"></div>
+    <p class="otp-hint">Enter the 6-digit code sent to your email, then set a new password.</p>
+    <div id="successMsg"></div>
+    <div class="field">
+      <label for="resetOtp">Reset Code</label>
+      <input type="text" id="resetOtp" inputmode="numeric" maxlength="6"
+             autocomplete="one-time-code" placeholder="000000"
+             style="letter-spacing:8px;font-size:22px;text-align:center" />
+    </div>
+    <div class="field">
+      <label for="newPass">New Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="newPass" autocomplete="new-password" placeholder="Min 10 chars, upper+lower+digit+symbol" />
+        <button type="button" class="pw-eye" id="eyeBtn2" aria-label="Show password">👁️</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="newPass2">Confirm New Password</label>
+      <input type="password" id="newPass2" autocomplete="new-password" placeholder="Repeat password" />
+    </div>
+    <button class="btn" id="resetBtn">Reset Password</button>
+    <span class="back-link" id="resetBackBtn">← Back to Sign In</span>
   </div>
 
   <!-- Step 2: TOTP -->

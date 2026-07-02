@@ -89,6 +89,122 @@
   });
   totpEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') do2fa(); });
 
+  // ── Forgot Password ────────────────────────────────────────────────────
+  var stepForgot   = document.getElementById('stepForgot');
+  var stepReset    = document.getElementById('stepReset');
+  var forgotLink   = document.getElementById('forgotLink');
+  var forgotUser   = document.getElementById('forgotUser');
+  var sendOtpBtn   = document.getElementById('sendOtpBtn');
+  var forgotBackBtn= document.getElementById('forgotBackBtn');
+  var resetOtp     = document.getElementById('resetOtp');
+  var newPass      = document.getElementById('newPass');
+  var newPass2     = document.getElementById('newPass2');
+  var resetBtn     = document.getElementById('resetBtn');
+  var resetBackBtn = document.getElementById('resetBackBtn');
+  var successMsg   = document.getElementById('successMsg');
+  var eyeBtn2      = document.getElementById('eyeBtn2');
+  var _forgotUsername = '';
+
+  function showStep(show) {
+    [step1, step2, stepForgot, stepReset].forEach(function(s){ s.style.display='none'; s.classList.remove('show'); });
+    show.style.display = '';
+    show.classList.add('show');
+    clearErr();
+    if (successMsg) { successMsg.classList.remove('show'); }
+  }
+
+  forgotLink.addEventListener('click', function () {
+    showStep(stepForgot);
+    forgotUser.value = userEl.value || '';
+    forgotUser.focus();
+  });
+
+  forgotBackBtn.addEventListener('click', function () {
+    showStep(step1);
+    userEl.focus();
+  });
+
+  resetBackBtn.addEventListener('click', function () {
+    showStep(step1);
+    userEl.focus();
+  });
+
+  if (eyeBtn2) {
+    eyeBtn2.addEventListener('click', function () {
+      var show = newPass.type === 'password';
+      newPass.type = show ? 'text' : 'password';
+      eyeBtn2.textContent = show ? '🙈' : '👁️';
+    });
+  }
+
+  function doSendOtp() {
+    clearErr();
+    var username = forgotUser.value.trim();
+    if (!username) { showErr('Enter your username.'); return; }
+    _forgotUsername = username;
+    setLoading(sendOtpBtn, true, 'Send Reset Code');
+    fetch('/api/forgot-password', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+      body: JSON.stringify({ username: username })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      setLoading(sendOtpBtn, false, 'Send Reset Code');
+      if (res.ok || res.d.sent) {
+        showStep(stepReset);
+        successMsg.textContent = '✅ Reset code sent to the registered email. Check your inbox (and spam).';
+        successMsg.classList.add('show');
+        resetOtp.focus();
+        return;
+      }
+      showErr(res.d.error || 'Could not send code.');
+    })
+    .catch(function () {
+      setLoading(sendOtpBtn, false, 'Send Reset Code');
+      showErr('Network error — please try again.');
+    });
+  }
+
+  function doReset() {
+    clearErr();
+    var otp = resetOtp.value.replace(/\s/g, '');
+    var pw  = newPass.value;
+    var pw2 = newPass2.value;
+    if (otp.length !== 6) { showErr('Enter the 6-digit code from your email.'); return; }
+    if (!pw) { showErr('Enter a new password.'); return; }
+    if (pw !== pw2) { showErr('Passwords do not match.'); return; }
+    setLoading(resetBtn, true, 'Reset Password');
+    fetch('/api/reset-password', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+      body: JSON.stringify({ username: _forgotUsername, otp: otp, new_password: pw })
+    })
+    .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+    .then(function (res) {
+      setLoading(resetBtn, false, 'Reset Password');
+      if (res.ok) {
+        showStep(step1);
+        clearErr();
+        userEl.value = _forgotUsername;
+        passEl.value = '';
+        passEl.placeholder = '✅ Password reset — sign in with new password';
+        passEl.focus();
+        return;
+      }
+      showErr(res.d.error || 'Reset failed.');
+    })
+    .catch(function () {
+      setLoading(resetBtn, false, 'Reset Password');
+      showErr('Network error — please try again.');
+    });
+  }
+
+  sendOtpBtn.addEventListener('click', doSendOtp);
+  resetBtn.addEventListener('click', doReset);
+  forgotUser.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSendOtp(); });
+  resetOtp.addEventListener('keydown', function (e) { if (e.key === 'Enter') doReset(); });
+
   fetch('/api/me', { credentials: 'include', headers: { 'X-Requested-With': 'fetch' } })
     .then(function (r) { return r.json(); })
     .then(function (d) { if (d.admin) window.location.replace('/admin'); })

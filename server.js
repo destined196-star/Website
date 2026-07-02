@@ -608,6 +608,49 @@ app.post('/api/login', loginLimiter, (req, res) => {
 });
 
 app.post('/api/logout', (req, res) => { req.session.destroy(() => res.json({ ok: true })); });
+
+// Forgot password — step 1: request OTP (unauthenticated, tight rate limit)
+const forgotLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'too many reset requests, try later' } });
+app.post('/api/forgot-password', forgotLimiter, asyncRoute(async (req, res) => {
+  const { username } = req.body;
+  // Always respond ok=true to avoid username enumeration
+  if (!username) return res.json({ ok: true, sent: true });
+  const row = db.prepare('SELECT id, email FROM admin WHERE username=?').get(String(username).trim());
+  if (!row || !row.email || !mailer) return res.json({ ok: true, sent: true });
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  const otpHash = bcrypt.hashSync(otp, 8);
+  const expires = Date.now() + 15 * 60 * 1000; // 15 min
+  db.prepare('UPDATE admin SET pw_otp=?, pw_otp_expires=? WHERE id=?').run(otpHash, expires, row.id);
+  try {
+    await mailer.sendMail({
+      from: process.env.SMTP_USER,
+      to: row.email,
+      subject: 'Admin Password Reset Code — Devi Murlika Gaur',
+      text: `Your password reset code is: ${otp}\n\nThis code expires in 15 minutes.\n\nIf you did not request this, ignore this email.`
+    });
+  } catch (e) {
+    console.error('[forgot-password] email failed:', e.message);
+    // Still return ok so attacker can't distinguish "account exists + email failed" from "no account"
+  }
+  res.json({ ok: true, sent: true });
+}));
+
+// Forgot password — step 2: verify OTP + set new password (unauthenticated)
+app.post('/api/reset-password', forgotLimiter, (req, res) => {
+  const { username, otp, new_password } = req.body;
+  if (!username || !otp || !new_password) return res.status(400).json({ error: 'missing fields' });
+  const row = db.prepare('SELECT id, pw_otp, pw_otp_expires FROM admin WHERE username=?').get(String(username).trim());
+  if (!row) return res.status(400).json({ error: 'invalid code' }); // no enumeration
+  if (!row.pw_otp || !row.pw_otp_expires || Date.now() > row.pw_otp_expires)
+    return res.status(400).json({ error: 'code expired — request a new one' });
+  if (!bcrypt.compareSync(String(otp).replace(/\s/g, ''), row.pw_otp))
+    return res.status(400).json({ error: 'invalid code' });
+  const prob = passwordProblem(new_password);
+  if (prob) return res.status(400).json({ error: 'Password needs ' + prob });
+  db.prepare('UPDATE admin SET password_hash=?, pw_otp=NULL, pw_otp_expires=0 WHERE id=?')
+    .run(bcrypt.hashSync(new_password, 12), row.id);
+  res.json({ ok: true });
+});
 const ENFORCE_2FA = process.env.ENFORCE_2FA !== 'false';   // mandatory by default
 app.get('/api/me', (req, res) => {
   const a = req.session?.admin;
