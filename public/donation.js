@@ -77,13 +77,34 @@ function renderPaymentMethods(s) {
   if (s.gpay_number)    links += payRow('📲', 'Google Pay (GPay)', s.gpay_number, null);
   if (s.phonepe_number) links += payRow('📲', 'PhonePe', s.phonepe_number, null);
   if (s.paytm_number)   links += payRow('📲', 'Paytm', s.paytm_number, null);
-  if (s.razorpay_link)  links += payRow('💳', 'Razorpay', 'Pay via Razorpay', s.razorpay_link);
   if (s.paypal_link)    links += payRow('🌐', 'PayPal', 'Pay via PayPal', s.paypal_link);
 
   if (links) {
     html += '<div class="pay-card" style="margin-top:24px">'
       + '<h3>🌐 Other Payment Options</h3>'
       + links + '</div>';
+  }
+
+  // ── 4. UPI App QR codes (GPay / PhonePe / Paytm) ──
+  var qrCards = '';
+  [
+    { key: 'gpay_qr_url',    label: 'Google Pay' },
+    { key: 'phonepe_qr_url', label: 'PhonePe' },
+    { key: 'paytm_qr_url',   label: 'Paytm' }
+  ].forEach(function(app) {
+    if (!s[app.key]) return;
+    qrCards += '<div style="text-align:center;flex:1;min-width:160px">'
+      + '<div class="qr-wrap" style="margin:0 auto 8px"><img alt="' + esc(app.label) + ' QR" width="172" height="172" src="' + esc(safeUrl(s[app.key])) + '" /></div>'
+      + '<div class="qr-name">' + esc(app.label) + '</div>'
+      + '</div>';
+  });
+  if (qrCards) {
+    html += '<div class="qr-slip" style="margin-top:24px">'
+      + '<div class="qr-slip-header">SCAN & PAY'
+      + '<span>Use GPay · PhonePe · Paytm · any UPI app</span></div>'
+      + '<div class="qr-slip-body" style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center">'
+      + qrCards
+      + '</div></div>';
   }
 
   // ── 4. Custom / Other ──

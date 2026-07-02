@@ -645,6 +645,7 @@ const ALLOWED_SETTINGS = new Set([
   // donation / payment
   'upi_id', 'upi_name', 'donation_note',
   'razorpay_key', 'razorpay_link', 'razorpay_qr_url',
+  'gpay_qr_url', 'phonepe_qr_url', 'paytm_qr_url',
   'paypal_link',
   'gpay_number', 'phonepe_number', 'paytm_number',
   'other_payment',

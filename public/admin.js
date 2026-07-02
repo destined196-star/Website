@@ -1010,9 +1010,9 @@ async function loadDonations() {
 const SETTINGS_KEYS = [
   'youtube', 'facebook', 'instagram', 'pinterest',
   'phone', 'location', 'bio',
-  'paypal_link', 'upi_id', 'upi_name', 'donation_note',
+  'upi_id', 'upi_name', 'donation_note',
   'bank_name', 'bank_account_name', 'bank_account_number', 'bank_ifsc', 'bank_branch',
-  'razorpay_link', 'razorpay_qr_url', 'gpay_number', 'phonepe_number', 'paytm_number', 'other_payment'
+  'paypal_link', 'gpay_number', 'gpay_qr_url', 'phonepe_number', 'phonepe_qr_url', 'paytm_number', 'paytm_qr_url', 'other_payment'
 ];
 
 async function loadSettings() {
