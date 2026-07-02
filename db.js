@@ -16,7 +16,8 @@ const DB_DIR = path.dirname(DB_PATH);
 if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');   // enable CASCADE DELETE etc.
+db.pragma('foreign_keys = ON');           // enable CASCADE DELETE etc.
+db.pragma('auto_vacuum = INCREMENTAL');   // allow incremental_vacuum to reclaim space
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS admin (

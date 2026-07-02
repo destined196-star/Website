@@ -158,6 +158,38 @@ app.use('/api/', apiLimiter);
 // Health check (uptime monitoring)
 app.get('/healthz', healthzLimiter, (req, res) => res.json({ ok: true, ts: Date.now() }));
 
+// ---- Periodic housekeeping (runs every 6 hours, keeps DB lean unattended) ----
+function housekeeping() {
+  try {
+    // 1. Prune login_audit older than 90 days (prevents unbounded growth)
+    const auditCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const auditDel = db.prepare("DELETE FROM login_audit WHERE created_at < ?").run(auditCutoff);
+    if (auditDel.changes) console.error(`[housekeeping] pruned ${auditDel.changes} old audit entries`);
+
+    // 2. Clean stale pending_orders older than 1 hour (abandoned Razorpay checkouts)
+    const orderCutoff = Date.now() - 60 * 60 * 1000;
+    const orderDel = db.prepare("DELETE FROM pending_orders WHERE created_at < ?").run(orderCutoff);
+    if (orderDel.changes) console.error(`[housekeeping] pruned ${orderDel.changes} stale pending orders`);
+
+    // 3. Purge expired sessions (supplement to hourly cleanup in SQLiteStore)
+    db.prepare('DELETE FROM sessions WHERE expired_at < ?').run(Date.now());
+
+    // 4. WAL checkpoint — keep WAL file small between backups/restarts
+    db.pragma('wal_checkpoint(PASSIVE)');
+
+    // 5. Reclaim disk space periodically (SQLite doesn't auto-shrink)
+    db.exec('PRAGMA incremental_vacuum(64)');  // free up to 64 pages per run
+  } catch (e) {
+    console.error('[housekeeping] error:', e.message);
+  }
+}
+// Run on startup + every 6 hours
+housekeeping();
+setInterval(housekeeping, 6 * 60 * 60 * 1000).unref();
+
+// Async-safe route wrapper — catches unhandled rejections to prevent process crash
+const asyncRoute = fn => (req, res, next) => { Promise.resolve(fn(req, res, next)).catch(next); };
+
 // ---- CSRF defence: mutations must carry a custom header (H2) ----
 // Browsers cannot set custom headers on cross-site requests without a CORS
 // pre-flight we don't grant, so this blocks forged form posts from other sites.
@@ -202,7 +234,7 @@ app.get('/api/settings', (req, res) => {
 
 // ---- YouTube comments (cached 30 min) ----
 let ytCache = { comments: [], at: 0 };
-app.get('/api/yt-comments', async (req, res) => {
+app.get('/api/yt-comments', asyncRoute(async (req, res) => {
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) return res.json([]);
   if (ytCache.comments.length && Date.now() - ytCache.at < 30 * 60 * 1000)
@@ -245,7 +277,7 @@ app.get('/api/yt-comments', async (req, res) => {
     console.error('[yt-comments]', e.message);
     res.json([]);
   }
-});
+}));
 
 app.get('/api/events', (req, res) => {
   res.json(db.prepare('SELECT * FROM events ORDER BY sort_order, id').all());
@@ -297,7 +329,7 @@ app.get('/api/press', (req, res) => {
 });
 
 // Razorpay: create an order (needs RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET in env)
-app.post('/api/donate/order', contactLimiter, async (req, res) => {
+app.post('/api/donate/order', contactLimiter, asyncRoute(async (req, res) => {
   const keyId = process.env.RAZORPAY_KEY_ID, secret = process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !secret) return res.status(400).json({ error: 'Razorpay not configured on server' });
   const amount = Math.min(1_000_000, Math.max(1, Number(req.body.amount) || 0)); // bounded (LOW)
@@ -317,7 +349,7 @@ app.post('/api/donate/order', contactLimiter, async (req, res) => {
       .run(order.id, order.amount, Date.now());
     res.json({ order_id: order.id, amount: order.amount, key_id: keyId });
   } catch (e) { console.error('[razorpay]', e.message); res.status(500).json({ error: 'payment error' }); }
-});
+}));
 
 // Verify a Razorpay payment signature BEFORE recording (H4). Never trust the client.
 app.post('/api/donate/verify', contactLimiter, (req, res) => {
@@ -705,7 +737,7 @@ app.get('/api/admin/account', requireAuth, (req, res) => {
 });
 
 // Step 1 of password change: validate current password + new password, send OTP to email
-app.post('/api/admin/password/otp', requireAuth, otpLimiter, async (req, res) => {
+app.post('/api/admin/password/otp', requireAuth, otpLimiter, asyncRoute(async (req, res) => {
   const { current, next, confirm } = req.body;
   const row = db.prepare('SELECT id, username, password_hash, email, totp_enabled, totp_secret, pw_otp, pw_otp_expires FROM admin WHERE id=?').get(req.session.admin.id);
   if (!bcrypt.compareSync(current || '', row.password_hash))
@@ -735,7 +767,7 @@ app.post('/api/admin/password/otp', requireAuth, otpLimiter, async (req, res) =>
     return res.status(500).json({ error: 'Failed to send email. Check SMTP settings.' });
   }
   res.json({ ok: true, hint: `Code sent to ${row.email.replace(/(.{2}).+(@.+)/, '$1***$2')}` });
-});
+}));
 
 // Step 2 of password change: verify OTP and apply new password
 app.put('/api/admin/password', requireAuth, otpLimiter, (req, res) => {
@@ -767,7 +799,7 @@ app.put('/api/admin/password', requireAuth, otpLimiter, (req, res) => {
 // If 2FA is already active, require the current password before overwriting the
 // active secret (prevents an attacker with a stolen session from silently
 // disabling 2FA by simply calling this endpoint).
-app.post('/api/admin/2fa/setup', requireAuth, async (req, res) => {
+app.post('/api/admin/2fa/setup', requireAuth, asyncRoute(async (req, res) => {
   const row = db.prepare('SELECT id, username, password_hash, email, totp_enabled, totp_secret, pw_otp, pw_otp_expires FROM admin WHERE id=?').get(req.session.admin.id);
   if (row.totp_enabled) {
     if (!req.body.password) return res.status(400).json({ error: 'current password required to re-setup 2FA' });
@@ -780,7 +812,7 @@ app.post('/api/admin/2fa/setup', requireAuth, async (req, res) => {
   db.prepare('UPDATE admin SET totp_secret=?, totp_enabled=0 WHERE id=?').run(base32, req.session.admin.id);
   const qr = await qrcode.toDataURL(otpauthUrl);
   res.json({ qr, secret: base32 });
-});
+}));
 
 // Step 2: confirm a code to turn 2FA on.
 app.post('/api/admin/2fa/enable', requireAuth, (req, res) => {
