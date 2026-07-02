@@ -64,6 +64,50 @@ app.use(helmet({
 app.use(express.json({ limit: '16kb' }));            // M3: cap body size
 app.use(express.urlencoded({ extended: true, limit: '16kb' }));
 
+// ── Razorpay webhook — must be registered BEFORE express.json() consumed the body ──
+// Uses express.raw() so we get the raw Buffer for HMAC verification.
+// Route is defined here so it runs before csrfGuard and apiLimiter (both added later).
+app.post('/api/razorpay/webhook', express.raw({ type: 'application/json', limit: '64kb' }), (req, res) => {
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!webhookSecret) return res.status(400).json({ error: 'webhook not configured' });
+
+  const sig = req.headers['x-razorpay-signature'];
+  if (!sig) return res.status(400).json({ error: 'missing signature' });
+
+  // Verify HMAC-SHA256(rawBody, webhookSecret) === X-Razorpay-Signature
+  const expected = crypto.createHmac('sha256', webhookSecret)
+    .update(req.body).digest('hex');
+  if (expected.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig)))
+    return res.status(400).json({ error: 'invalid signature' });
+
+  let payload;
+  try { payload = JSON.parse(req.body.toString()); }
+  catch { return res.status(400).json({ error: 'invalid json' }); }
+
+  const event = payload.event;
+  console.log('[webhook] razorpay event:', event);
+
+  // Handle payment captured (QR pay, links, etc.)
+  if (event === 'payment.captured' || event === 'payment.authorized') {
+    const p = payload.payload?.payment?.entity || {};
+    const amountRupees = (p.amount || 0) / 100;
+    const name  = String(p.notes?.name || p.email?.split('@')[0] || 'Anonymous').slice(0, 120);
+    const email = String(p.email || '').slice(0, 160);
+    const ref   = String(p.id || '').slice(0, 80);
+    const method = p.method || 'razorpay';
+
+    // Avoid duplicate inserts for same payment_id
+    const exists = db.prepare('SELECT 1 FROM donations WHERE reference=?').get(ref);
+    if (!exists && amountRupees > 0) {
+      db.prepare('INSERT INTO donations (name,email,amount,method,reference) VALUES (?,?,?,?,?)')
+        .run(name, email, amountRupees, method, ref);
+      console.log(`[webhook] donation recorded ₹${amountRupees} ref=${ref}`);
+    }
+  }
+
+  res.json({ ok: true });
+});
+
 // ---- Production access logging (stdout → captured by pm2 / Azure) ----
 if (PROD) {
   app.use((req, res, next) => {
@@ -600,7 +644,7 @@ const ALLOWED_SETTINGS = new Set([
   'youtube', 'facebook', 'instagram', 'pinterest', 'phone', 'location', 'bio',
   // donation / payment
   'upi_id', 'upi_name', 'donation_note',
-  'razorpay_key', 'razorpay_link',
+  'razorpay_key', 'razorpay_link', 'razorpay_qr_url',
   'paypal_link',
   'gpay_number', 'phonepe_number', 'paytm_number',
   'other_payment',

@@ -1012,7 +1012,7 @@ const SETTINGS_KEYS = [
   'phone', 'location', 'bio',
   'paypal_link', 'upi_id', 'upi_name', 'donation_note',
   'bank_name', 'bank_account_name', 'bank_account_number', 'bank_ifsc', 'bank_branch',
-  'razorpay_link', 'gpay_number', 'phonepe_number', 'paytm_number', 'other_payment'
+  'razorpay_link', 'razorpay_qr_url', 'gpay_number', 'phonepe_number', 'paytm_number', 'other_payment'
 ];
 
 async function loadSettings() {
