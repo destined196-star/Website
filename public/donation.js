@@ -63,18 +63,7 @@ function renderPaymentMethods(s) {
       + '</div>';
   }
 
-  // ── 2. Razorpay QR (if razorpay_qr_url is set — payments auto-recorded via webhook) ──
-  if (s.razorpay_qr_url) {
-    html += '<div class="qr-slip" style="margin-top:24px">'
-      + '<div class="qr-slip-header">SCAN & PAY — POWERED BY RAZORPAY'
-      + '<span>Payments are automatically recorded · Use any UPI app</span></div>'
-      + '<div class="qr-slip-body">'
-      + '<div class="qr-wrap"><img alt="Razorpay QR Code" width="172" height="172" src="' + esc(safeUrl(s.razorpay_qr_url)) + '" /></div>'
-      + '<div class="qr-name">Devi Murlika Gaur</div>'
-      + '</div></div>';
-  }
-
-  // ── 3. Bank Transfer (if account number filled) ──
+  // ── 2. Bank Transfer (if account number filled) ──
   if (s.bank_account_number) {
     html += '<div class="pay-card" style="margin-top:24px">'
       + '<h3>🏦 Bank Transfer (NEFT / IMPS)</h3>'
