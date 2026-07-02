@@ -33,6 +33,8 @@ function esc(s) {
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
   );
 }
+// Prevent javascript: URIs in href/src attributes
+function safeUrl(u) { const v = String(u || '').trim(); return /^(https?:\/\/|\/|#|mailto:|tel:)/i.test(v) ? v : '#'; }
 
 /* ── Toast ───────────────────────────────────── */
 let _tt;
@@ -257,7 +259,7 @@ async function loadEvents() {
       <div>
         <h4 style="color:var(--maroon);margin-bottom:4px">${esc(e.title)}</h4>
         ${e.description ? `<p style="color:var(--muted);font-size:14px;margin:0 0 4px">${esc(e.description)}</p>` : ''}
-        ${e.link ? `<a href="${esc(e.link)}" target="_blank" rel="noopener noreferrer" style="color:var(--saffron-dark);font-size:13px">🔗 View event</a>` : ''}
+        ${e.link ? `<a href="${esc(safeUrl(e.link))}" target="_blank" rel="noopener noreferrer" style="color:var(--saffron-dark);font-size:13px">🔗 View event</a>` : ''}
         <div class="admin-item-bar">
           <button class="btn-edit ev-edit" data-id="${e.id}">✏️ Edit</button>
           <button class="btn-del ev-del" data-id="${e.id}">🗑 Delete</button>
@@ -757,7 +759,7 @@ async function loadVideos() {
       <div class="vc-body">
         <h4>${esc(v.title)}${v.featured ? '<span class="featured-badge">Featured</span>' : ''}</h4>
         ${v.description ? `<div class="meta" style="margin-bottom:4px">${esc(v.description)}</div>` : ''}
-        <div class="meta"><a href="${esc(v.youtube_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--saffron-dark)">Watch on YouTube ↗</a></div>
+        <div class="meta"><a href="${esc(safeUrl(v.youtube_url))}" target="_blank" rel="noopener noreferrer" style="color:var(--saffron-dark)">Watch on YouTube ↗</a></div>
       </div>
       <div class="admin-item-bar">
         <button class="btn-edit vid-edit" data-id="${v.id}">✏️ Edit</button>
@@ -1122,6 +1124,50 @@ function cancelPwChange() {
   var m2=$('pwMsg2'); if(m2) m2.style.display='none';
 }
 
+/* ── 2FA Setup ──────────────────────────────── */
+async function setup2fa() {
+  var body = {};
+  var pwField = $('tfaPwField');
+  var pwInput = $('tfaPassword');
+  // If 2FA already active, password required for re-setup
+  try {
+    var me = await api('/api/me');
+    if (me.totp_enabled) {
+      if (pwField) pwField.style.display = 'block';
+      if (pwInput && !pwInput.value) { toast('Enter current password to re-setup 2FA', 'err'); return; }
+      body.password = pwInput.value;
+    }
+  } catch(_) {}
+  try {
+    var d = await api('/api/admin/2fa/setup', { method: 'POST', body: JSON.stringify(body) });
+    $('tfaQr').src = d.qr;
+    $('tfaSecret').textContent = d.secret;
+    $('tfaStep1').style.display = 'none';
+    $('tfaStep2').style.display = 'block';
+    var codeInput = $('tfaCode');
+    if (codeInput) { codeInput.value = ''; codeInput.focus(); }
+  } catch(e) {
+    toast(e.message || 'Setup failed', 'err');
+  }
+}
+
+async function confirm2fa() {
+  var code = ($('tfaCode') || {}).value || '';
+  if (code.replace(/\s/g, '').length !== 6) { toast('Enter 6-digit code from your authenticator', 'err'); return; }
+  try {
+    await api('/api/admin/2fa/enable', { method: 'POST', body: JSON.stringify({ token: code }) });
+    toast('2FA enabled! Your account is now protected.', 'ok');
+    cancelForm('twofa');
+    $('tfaStep1').style.display = 'block';
+    $('tfaStep2').style.display = 'none';
+    var banner = $('twoFaBanner');
+    if (banner) banner.style.display = 'none';
+  } catch(e) {
+    var msg = $('tfaMsg');
+    if (msg) { msg.textContent = e.message || 'Invalid code'; msg.style.display = 'block'; msg.style.background = '#fdecea'; msg.style.color = '#b0120a'; }
+  }
+}
+
 /* ══════════════════════════════════════════════
    EVENT DELEGATION — replaces all onclick= attrs
    ══════════════════════════════════════════════ */
@@ -1156,7 +1202,10 @@ function cancelPwChange() {
       saveAdminEmail:  function() { saveAdminEmail(); },
       requestPwOtp:    function() { requestPwOtp(); },
       confirmPwChange: function() { confirmPwChange(); },
-      cancelPwChange:  function() { cancelPwChange(); }
+      cancelPwChange:  function() { cancelPwChange(); },
+      setup2fa:        function() { setup2fa(); },
+      confirm2fa:      function() { confirm2fa(); },
+      cancel2fa:       function() { cancelForm('twofa'); }
     };
     var fn = map[btn.dataset.action];
     if (fn) fn();
@@ -1227,7 +1276,14 @@ async function init() {
         var banner = document.createElement('div');
         banner.id = 'twoFaBanner';
         banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#b45309;color:#fff;text-align:center;padding:10px 16px;font-size:14px;font-weight:600;';
-        banner.innerHTML = '⚠️ Two-factor authentication is required but not set up. <a href="#" onclick="showForm(\'twofa\');document.getElementById(\'twoFaBanner\').style.display=\'none\';return false;" style="color:#fde68a;text-decoration:underline;">Set up 2FA now →</a>';
+        var bannerText = document.createTextNode('⚠️ Two-factor authentication is required but not set up. ');
+        var bannerLink = document.createElement('a');
+        bannerLink.href = '#';
+        bannerLink.style.cssText = 'color:#fde68a;text-decoration:underline;';
+        bannerLink.textContent = 'Set up 2FA now →';
+        bannerLink.addEventListener('click', function(e) { e.preventDefault(); showForm('twofa'); banner.style.display = 'none'; });
+        banner.appendChild(bannerText);
+        banner.appendChild(bannerLink);
         document.body.prepend(banner);
       }
     })

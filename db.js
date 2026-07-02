@@ -116,6 +116,12 @@ db.exec(`
     UNIQUE(playlist_id, video_id)
   );
 
+  CREATE TABLE IF NOT EXISTS pending_orders (
+    order_id TEXT PRIMARY KEY,
+    amount_paise INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS press_articles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -140,13 +146,25 @@ addCol('pw_otp', 'TEXT');
 addCol('pw_otp_expires', 'INTEGER DEFAULT 0');
 addCol('totp_last_used', 'TEXT');
 
+// Password strength check (mirrors server.js passwordProblem without the common-password set)
+function seedPasswordProblem(pw) {
+  pw = String(pw || '');
+  if (pw.length < 10) return 'at least 10 characters';
+  if (!/[a-z]/.test(pw)) return 'a lowercase letter';
+  if (!/[A-Z]/.test(pw)) return 'an uppercase letter';
+  if (!/[0-9]/.test(pw)) return 'a number';
+  if (!/[^A-Za-z0-9]/.test(pw)) return 'a symbol';
+  return null;
+}
+
 // Seed admin from env (only if none exists). No insecure default password (C2).
 const adminCount = db.prepare('SELECT COUNT(*) c FROM admin').get().c;
 const adminUser = process.env.ADMIN_USER || 'admin';
 const adminPass = process.env.ADMIN_PASS;
 if (adminCount === 0) {
-  if (!adminPass || adminPass.length < 10) {
-    throw new Error('No admin exists yet. Set ADMIN_PASS (min 10 chars) in .env before first run.');
+  const problem = seedPasswordProblem(adminPass);
+  if (!adminPass || problem) {
+    throw new Error(`ADMIN_PASS too weak${problem ? ': needs ' + problem : ''}. Set a strong password (10+ chars, upper, lower, digit, symbol) in .env.`);
   }
   const hash = bcrypt.hashSync(adminPass, 12);
   db.prepare('INSERT INTO admin (username, password_hash) VALUES (?, ?)').run(adminUser, hash);

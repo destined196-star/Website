@@ -4,7 +4,7 @@ import session from 'express-session';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import crypto from 'crypto';
 import { generateSecret as totpGenerateSecret, generateURI as totpGenerateURI, verifySync as totpVerify } from 'otplib';
 import qrcode from 'qrcode';
@@ -41,6 +41,7 @@ app.set('trust proxy', 1);            // H5: correct secure-cookie behaviour beh
 
 // ---- Security headers + CSP (M1) ----
 app.use(helmet({
+  hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -80,7 +81,7 @@ if (PUBLIC_ORIGIN) {
     if (req.headers.origin === PUBLIC_ORIGIN) {
       res.header('Access-Control-Allow-Origin', PUBLIC_ORIGIN);
       res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+      res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
     }
     if (req.method === 'OPTIONS') return res.sendStatus(204);
@@ -134,15 +135,24 @@ app.use(session({
   saveUninitialized: false,
   rolling: true,   // idle timeout: each request resets the clock; inactivity expires the session
   store: new SQLiteStore(),
-  cookie: { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 1000 * 60 * 60 * 8 } // 8 h idle
+  cookie: { httpOnly: true, sameSite: 'lax', secure: PROD, maxAge: 1000 * 60 * 30 } // 30 min idle
 }));
 
 // ---- Rate limiting (H3) ----
-const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { error: 'too many attempts, try later' } });
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'too many attempts, try later' },
+  // Per-username+IP key — defeats X-Forwarded-For IP rotation attacks
+  keyGenerator: (req) => {
+    const ip = ipKeyGenerator(req);
+    return req.body?.username ? `${req.body.username}:${ip}` : ip;
+  }
+});
 const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
 const healthzLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 // Tight limiter for contact form + donation order — prevents spam/order-flooding
 const contactLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'too many submissions, please try again later' } });
+const otpLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'too many OTP attempts, try later' } });
 app.use('/api/', apiLimiter);
 
 // Health check (uptime monitoring)
@@ -302,6 +312,9 @@ app.post('/api/donate/order', contactLimiter, async (req, res) => {
     });
     const order = await r.json();
     if (!r.ok) return res.status(400).json({ error: 'could not create order' });
+    // Cache order amount server-side for tamper-proof verification at /api/donate/verify
+    db.prepare('INSERT OR REPLACE INTO pending_orders (order_id, amount_paise, created_at) VALUES (?,?,?)')
+      .run(order.id, order.amount, Date.now());
     res.json({ order_id: order.id, amount: order.amount, key_id: keyId });
   } catch (e) { console.error('[razorpay]', e.message); res.status(500).json({ error: 'payment error' }); }
 });
@@ -310,7 +323,7 @@ app.post('/api/donate/order', contactLimiter, async (req, res) => {
 app.post('/api/donate/verify', contactLimiter, (req, res) => {
   const secret = process.env.RAZORPAY_KEY_SECRET;
   if (!secret) return res.status(400).json({ error: 'not configured' });
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, name, email, amount } = req.body;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, name, email } = req.body;
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature)
     return res.status(400).json({ error: 'missing payment fields' });
   const expected = crypto.createHmac('sha256', secret)
@@ -318,9 +331,13 @@ app.post('/api/donate/verify', contactLimiter, (req, res) => {
   const ok = expected.length === razorpay_signature.length &&
     crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature));
   if (!ok) return res.status(400).json({ error: 'invalid signature' });
+  // Use server-cached order amount (tamper-proof) — never trust req.body.amount
+  const pending = db.prepare('SELECT amount_paise FROM pending_orders WHERE order_id=?').get(razorpay_order_id);
+  const amount = pending ? pending.amount_paise / 100 : 0;
+  db.prepare('DELETE FROM pending_orders WHERE order_id=?').run(razorpay_order_id);
   db.prepare('INSERT INTO donations (name,email,amount,method,reference) VALUES (?,?,?,?,?)')
     .run(String(name || '').slice(0, 120), String(email || '').slice(0, 160),
-      Math.max(0, Number(amount) || 0), 'razorpay', String(razorpay_payment_id).slice(0, 80));
+      Math.max(0, amount), 'razorpay', String(razorpay_payment_id).slice(0, 80));
   res.json({ ok: true });
 });
 
@@ -385,7 +402,7 @@ const audit = (username, ip, success, reason) =>
 app.post('/api/login', loginLimiter, (req, res) => {
   const { username, password, token } = req.body;
   const ip = req.ip;
-  const row = db.prepare('SELECT * FROM admin WHERE username=?').get(username || '');
+  const row = db.prepare('SELECT id, username, password_hash, totp_enabled, totp_secret, totp_last_used, failed_attempts, locked_until FROM admin WHERE username=?').get(username || '');
 
   // Generic failure used for every wrong-credential case (no user enumeration).
   const fail = (reason) => { audit(username, ip, false, reason); return res.status(401).json({ error: 'invalid credentials' }); };
@@ -595,13 +612,13 @@ app.post('/api/admin/playlists', requireAuth, dbRoute((req, res) => {
   const { name, description, cover_image, sort_order } = req.body;
   if (!name) return res.status(400).json({ error: 'name required' });
   const r = db.prepare('INSERT INTO playlists (name,description,cover_image,sort_order) VALUES (?,?,?,?)')
-    .run(cap(name, 200), cap(description, 500) || '', cover_image || '', Number(sort_order) || 0);
+    .run(cap(name, 200), cap(description, 500) || '', cap(cover_image, 500) || '', Number(sort_order) || 0);
   res.json({ ok: true, id: r.lastInsertRowid });
 }));
 app.put('/api/admin/playlists/:id', requireAuth, dbRoute((req, res) => {
   const { name, description, cover_image, sort_order } = req.body;
   db.prepare('UPDATE playlists SET name=?,description=?,cover_image=?,sort_order=? WHERE id=?')
-    .run(cap(name, 200), cap(description, 500) || '', cover_image || '', Number(sort_order) || 0, req.params.id);
+    .run(cap(name, 200), cap(description, 500) || '', cap(cover_image, 500) || '', Number(sort_order) || 0, req.params.id);
   res.json({ ok: true });
 }));
 app.delete('/api/admin/playlists/:id', requireAuth, dbRoute((req, res) => {
@@ -688,9 +705,9 @@ app.get('/api/admin/account', requireAuth, (req, res) => {
 });
 
 // Step 1 of password change: validate current password + new password, send OTP to email
-app.post('/api/admin/password/otp', requireAuth, async (req, res) => {
+app.post('/api/admin/password/otp', requireAuth, otpLimiter, async (req, res) => {
   const { current, next, confirm } = req.body;
-  const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
+  const row = db.prepare('SELECT id, username, password_hash, email, totp_enabled, totp_secret, pw_otp, pw_otp_expires FROM admin WHERE id=?').get(req.session.admin.id);
   if (!bcrypt.compareSync(current || '', row.password_hash))
     return res.status(400).json({ error: 'current password wrong' });
   const problem = passwordProblem(next);
@@ -721,9 +738,9 @@ app.post('/api/admin/password/otp', requireAuth, async (req, res) => {
 });
 
 // Step 2 of password change: verify OTP and apply new password
-app.put('/api/admin/password', requireAuth, (req, res) => {
+app.put('/api/admin/password', requireAuth, otpLimiter, (req, res) => {
   const { current, next, otp } = req.body;
-  const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
+  const row = db.prepare('SELECT id, username, password_hash, email, totp_enabled, totp_secret, pw_otp, pw_otp_expires FROM admin WHERE id=?').get(req.session.admin.id);
   if (!bcrypt.compareSync(current || '', row.password_hash))
     return res.status(400).json({ error: 'current password wrong' });
   const problem = passwordProblem(next);
@@ -751,7 +768,7 @@ app.put('/api/admin/password', requireAuth, (req, res) => {
 // active secret (prevents an attacker with a stolen session from silently
 // disabling 2FA by simply calling this endpoint).
 app.post('/api/admin/2fa/setup', requireAuth, async (req, res) => {
-  const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
+  const row = db.prepare('SELECT id, username, password_hash, email, totp_enabled, totp_secret, pw_otp, pw_otp_expires FROM admin WHERE id=?').get(req.session.admin.id);
   if (row.totp_enabled) {
     if (!req.body.password) return res.status(400).json({ error: 'current password required to re-setup 2FA' });
     if (!bcrypt.compareSync(req.body.password || '', row.password_hash))
@@ -767,7 +784,7 @@ app.post('/api/admin/2fa/setup', requireAuth, async (req, res) => {
 
 // Step 2: confirm a code to turn 2FA on.
 app.post('/api/admin/2fa/enable', requireAuth, (req, res) => {
-  const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
+  const row = db.prepare('SELECT id, username, password_hash, email, totp_enabled, totp_secret, pw_otp, pw_otp_expires FROM admin WHERE id=?').get(req.session.admin.id);
   if (!row.totp_secret) return res.status(400).json({ error: 'run setup first' });
   const ok = totpVerify({ token: String(req.body.token || '').replace(/\s/g, ''), secret: row.totp_secret, type: 'totp', window: 1 }).valid;
   if (!ok) return res.status(400).json({ error: 'invalid code' });
@@ -778,7 +795,7 @@ app.post('/api/admin/2fa/enable', requireAuth, (req, res) => {
 // Disable 2FA (requires current password). Blocked when 2FA is mandatory.
 app.put('/api/admin/2fa/disable', requireAuth, (req, res) => {
   if (ENFORCE_2FA) return res.status(403).json({ error: '2FA is mandatory and cannot be disabled' });
-  const row = db.prepare('SELECT * FROM admin WHERE id=?').get(req.session.admin.id);
+  const row = db.prepare('SELECT id, username, password_hash, email, totp_enabled, totp_secret, pw_otp, pw_otp_expires FROM admin WHERE id=?').get(req.session.admin.id);
   if (!bcrypt.compareSync(req.body.password || '', row.password_hash))
     return res.status(400).json({ error: 'password wrong' });
   db.prepare('UPDATE admin SET totp_enabled=0, totp_secret=NULL WHERE id=?').run(row.id);

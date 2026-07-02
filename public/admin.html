@@ -696,6 +696,41 @@
         <button class="btn-save" data-action="saveAdminEmail">💾 Save Email</button>
       </div>
 
+      <!-- 2FA Setup Panel (opened by banner or manually) -->
+      <div class="a-form-panel" id="twofa" style="display:none">
+        <h3>🔐 Two-Factor Authentication (2FA)</h3>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:14px">
+          Scan the QR code with an authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code to enable 2FA.
+        </p>
+        <!-- Step 1: Show QR -->
+        <div id="tfaStep1">
+          <div class="f-field" id="tfaPwField" style="display:none">
+            <label>Current Password (required to re-setup)</label>
+            <input type="password" id="tfaPassword" autocomplete="current-password" placeholder="Your current password" />
+          </div>
+          <button class="btn-save" data-action="setup2fa">📱 Generate QR Code</button>
+        </div>
+        <!-- Step 2: QR + confirm -->
+        <div id="tfaStep2" style="display:none">
+          <div style="text-align:center;margin:16px 0">
+            <img id="tfaQr" src="" alt="2FA QR Code" style="max-width:220px;border-radius:8px;border:1px solid var(--line)" />
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:12px;word-break:break-all">
+            Manual key: <code id="tfaSecret" style="background:#f5f5f5;padding:2px 6px;border-radius:4px"></code>
+          </p>
+          <div class="f-field">
+            <label>Enter 6-digit code from your app</label>
+            <input type="text" id="tfaCode" inputmode="numeric" maxlength="6"
+                   placeholder="000000" style="letter-spacing:8px;font-size:22px;text-align:center" />
+          </div>
+          <div id="tfaMsg" style="display:none;padding:10px 14px;border-radius:6px;margin-bottom:12px;font-size:13px;font-weight:600"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn-save" data-action="confirm2fa">✅ Verify & Enable 2FA</button>
+            <button class="btn-save" style="background:#888" data-action="cancel2fa">✕ Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <div class="a-panel">
         <h3>🔒 Change Password</h3>
         <p style="color:var(--muted);font-size:13px;margin-bottom:14px">Min 10 characters — uppercase, lowercase, digit and symbol required. A verification code will be sent to your account email.</p>

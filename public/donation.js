@@ -16,6 +16,7 @@ function buildUpiUrl() {
 function esc(str) {
   var d = document.createElement('div'); d.textContent = str; return d.innerHTML;
 }
+function safeUrl(u) { var v = String(u || '').trim(); return /^https?:\/\//i.test(v) ? v : '#'; }
 
 function renderPaymentMethods(s) {
   var wrap = document.getElementById('paymentMethods');
@@ -109,7 +110,7 @@ function renderPaymentMethods(s) {
 
 function payRow(icon, label, value, href) {
   var val = href
-    ? '<a class="pay-value" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(value) + '</a>'
+    ? '<a class="pay-value" href="' + esc(safeUrl(href)) + '" target="_blank" rel="noopener">' + esc(value) + '</a>'
     : '<span class="pay-value">' + esc(value) + '</span>';
   return '<div class="pay-link-row">'
     + '<span class="pay-icon">' + icon + '</span>'
