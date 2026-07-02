@@ -155,8 +155,18 @@ const contactLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders:
 const otpLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'too many OTP attempts, try later' } });
 app.use('/api/', apiLimiter);
 
-// Health check (uptime monitoring)
-app.get('/healthz', healthzLimiter, (req, res) => res.json({ ok: true, ts: Date.now() }));
+// Health check (uptime monitoring + system status)
+app.get('/healthz', healthzLimiter, (req, res) => {
+  try {
+    // Quick DB health check
+    db.prepare('SELECT 1').get();
+    const uptime = Math.round(process.uptime());
+    const mem = Math.round(process.memoryUsage.rss() / 1024 / 1024);
+    res.json({ ok: true, ts: Date.now(), uptime, memMB: mem });
+  } catch (e) {
+    res.status(503).json({ ok: false, error: 'database unavailable' });
+  }
+});
 
 // ---- Periodic housekeeping (runs every 6 hours, keeps DB lean unattended) ----
 function housekeeping() {
@@ -179,10 +189,67 @@ function housekeeping() {
 
     // 5. Reclaim disk space periodically (SQLite doesn't auto-shrink)
     db.exec('PRAGMA incremental_vacuum(64)');  // free up to 64 pages per run
+
+    // 6. DB integrity check (quick — checks page-level consistency)
+    const integrity = db.pragma('quick_check(1)');
+    if (integrity?.[0]?.quick_check !== 'ok') {
+      console.error('[housekeeping] ⚠️ DB INTEGRITY ISSUE:', JSON.stringify(integrity));
+      alertAdmin('Database integrity check failed! Download a backup immediately.');
+    }
+
+    // 7. Orphan upload cleanup — remove files not referenced by any gallery/post/press/playlist
+    try {
+      const referenced = new Set();
+      for (const tbl of ['gallery', 'posts', 'press_articles']) {
+        db.prepare(`SELECT image FROM ${tbl} WHERE image LIKE '/uploads/%'`).all()
+          .forEach(r => referenced.add(path.basename(r.image)));
+      }
+      db.prepare("SELECT cover_image FROM playlists WHERE cover_image LIKE '/uploads/%'").all()
+        .forEach(r => referenced.add(path.basename(r.cover_image)));
+      const uploadDir = process.env.WEBSITE_INSTANCE_ID ? '/home/uploads' : path.join(__dirname, 'public', 'uploads');
+      if (fs.existsSync(uploadDir)) {
+        const files = fs.readdirSync(uploadDir);
+        let cleaned = 0;
+        for (const f of files) {
+          if (!referenced.has(f) && /\.(jpg|jpeg|png|webp|gif)$/i.test(f)) {
+            // Only delete files older than 24h (avoid race with in-progress uploads)
+            const stat = fs.statSync(path.join(uploadDir, f));
+            if (Date.now() - stat.mtimeMs > 24 * 60 * 60 * 1000) {
+              fs.unlinkSync(path.join(uploadDir, f));
+              cleaned++;
+            }
+          }
+        }
+        if (cleaned) console.error(`[housekeeping] cleaned ${cleaned} orphan upload files`);
+      }
+    } catch (e) { console.error('[housekeeping] orphan cleanup error:', e.message); }
+
+    // 8. Disk space warning (Azure B1 = 10GB)
+    try {
+      const dbStat = fs.statSync(DB_PATH);
+      const dbSizeMB = Math.round(dbStat.size / 1024 / 1024);
+      if (dbSizeMB > 500) {
+        console.error(`[housekeeping] ⚠️ DB size ${dbSizeMB}MB — approaching limit`);
+        alertAdmin(`Database is ${dbSizeMB}MB. Consider archiving old data.`);
+      }
+    } catch (_) {}
+
   } catch (e) {
     console.error('[housekeeping] error:', e.message);
   }
 }
+
+// Email alert for critical issues (best-effort, won't crash if mail fails)
+function alertAdmin(message) {
+  if (!mailer || !process.env.ADMIN_EMAIL) return;
+  mailer.sendMail({
+    from: process.env.SMTP_USER,
+    to: process.env.ADMIN_EMAIL,
+    subject: `⚠️ Site Alert — ${new Date().toISOString().split('T')[0]}`,
+    text: `Automated alert from Devi Murlika Gaur website:\n\n${message}\n\nCheck the admin panel → Settings → Backup to download a safety copy.`
+  }).catch(e => console.error('[alert] email failed:', e.message));
+}
+
 // Run on startup + every 6 hours
 housekeeping();
 setInterval(housekeeping, 6 * 60 * 60 * 1000).unref();
@@ -1000,4 +1067,22 @@ function gracefulShutdown(signal) {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT',  () => gracefulShutdown('SIGINT'));
 
-const server = app.listen(PORT, () => console.log(`[server] http://localhost:${PORT}  (admin: /admin)`));
+const server = app.listen(PORT, () => {
+  console.log(`[server] http://localhost:${PORT}  (admin: /admin)`);
+
+  // ---- Startup self-test: verify critical subsystems work ----
+  try {
+    // DB read/write test
+    db.prepare('SELECT 1').get();
+    // SMTP connection test (non-blocking, just logs)
+    if (mailer) {
+      mailer.verify().then(() => {
+        console.error('[smtp] connection verified');
+      }).catch(e => {
+        console.error(`[smtp] ⚠️ connection failed: ${e.message} — password change emails will not work`);
+      });
+    }
+  } catch (e) {
+    console.error('[startup] self-test FAILED:', e.message);
+  }
+});
