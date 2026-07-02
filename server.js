@@ -39,6 +39,15 @@ if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535)
 app.disable('x-powered-by');          // M2: don't leak the stack
 app.set('trust proxy', 1);            // H5: correct secure-cookie behaviour behind Azure proxy
 
+// ---- Canonical host: 301 redirect www.* → apex ----
+app.use((req, res, next) => {
+  const host = (req.hostname || '').toLowerCase();
+  if (host.startsWith('www.')) {
+    return res.redirect(301, 'https://' + host.slice(4) + req.originalUrl);
+  }
+  next();
+});
+
 // ---- Security headers + CSP (M1) ----
 app.use(helmet({
   hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
