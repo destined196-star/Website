@@ -52,12 +52,8 @@ function renderPaymentMethods(s) {
 
     // Amount selector
     html += '<div class="amt-section">'
-      + '<h4>Select Amount (Optional)</h4>'
-      + '<div class="amount-row">'
-      + [51,101,201,501,1001].map(function(a){ return '<button type="button" class="amt-btn" data-amt="'+a+'">₹'+a+'</button>'; }).join('')
-      + '</div>'
       + '<div class="custom-amt-wrap">'
-      + '<span>₹</span><input type="number" id="customAmt" placeholder="Custom amount" min="1" step="1" />'
+      + '<span>₹</span><input type="text" inputmode="numeric" pattern="[0-9]*" id="customAmt" placeholder="Enter amount" />'
       + '</div>'
       + '<a id="upiPayBtn" href="' + buildUpiUrl() + '" class="btn" style="width:100%;display:block;text-align:center">💳 Pay with UPI App</a>'
       + '</div>';
@@ -144,31 +140,11 @@ function wireUpi() {
     if (payBtn) payBtn.href = buildUpiUrl();
   }
 
-  if (amtSection) {
-    amtSection.addEventListener('click', function (e) {
-      var btn = e.target.closest('.amt-btn');
-      if (!btn) return;
-      var amt = parseInt(btn.dataset.amt, 10);
-      // Toggle off if already selected
-      if (upiAmt === amt) {
-        upiAmt = 0;
-        btn.classList.remove('sel');
-      } else {
-        upiAmt = amt;
-        amtSection.querySelectorAll('.amt-btn').forEach(function (b) { b.classList.remove('sel'); });
-        btn.classList.add('sel');
-      }
-      if (customAmtEl) customAmtEl.value = '';
-      updatePayBtn();
-    });
-  }
-
   // Custom amount input
   if (customAmtEl) {
     customAmtEl.addEventListener('input', function () {
-      var v = parseFloat(this.value);
+      var v = parseFloat(this.value.replace(/[^0-9.]/g, ''));
       upiAmt = (v > 0) ? v : 0;
-      if (amtSection) amtSection.querySelectorAll('.amt-btn').forEach(function (b) { b.classList.remove('sel'); });
       updatePayBtn();
     });
   }
