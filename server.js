@@ -192,6 +192,11 @@ app.use(session({
 }));
 
 // ---- Rate limiting (H3) ----
+// Shared IP key generator — strips the port suffix Azure adds to X-Forwarded-For.
+// Without this, express-rate-limit's default keyGenerator throws ValidationError on
+// port-suffixed IPs (e.g. "1.2.3.4:16386"), breaking every /api/ request (uploads hang).
+const ipKey = (req) => ipKeyGenerator(req);
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false,
   message: { error: 'too many attempts, try later' },
@@ -201,11 +206,11 @@ const loginLimiter = rateLimit({
     return req.body?.username ? `${req.body.username}:${ip}` : ip;
   }
 });
-const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false });
-const healthzLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 100, standardHeaders: true, legacyHeaders: false, keyGenerator: ipKey });
+const healthzLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, keyGenerator: ipKey });
 // Tight limiter for contact form + donation order — prevents spam/order-flooding
-const contactLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'too many submissions, please try again later' } });
-const otpLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'too many OTP attempts, try later' } });
+const contactLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, keyGenerator: ipKey, message: { error: 'too many submissions, please try again later' } });
+const otpLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, keyGenerator: ipKey, message: { error: 'too many OTP attempts, try later' } });
 app.use('/api/', apiLimiter);
 
 // Health check (uptime monitoring + system status)
@@ -626,7 +631,7 @@ app.post('/api/login', loginLimiter, (req, res) => {
 app.post('/api/logout', (req, res) => { req.session.destroy(() => res.json({ ok: true })); });
 
 // Forgot password — step 1: request OTP (unauthenticated, tight rate limit)
-const forgotLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { error: 'too many reset requests, try later' } });
+const forgotLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, keyGenerator: ipKey, message: { error: 'too many reset requests, try later' } });
 app.post('/api/forgot-password', forgotLimiter, asyncRoute(async (req, res) => {
   const { username } = req.body;
   // Always respond ok=true to avoid username enumeration
