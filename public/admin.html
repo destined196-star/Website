@@ -389,6 +389,7 @@
     <button data-tab="gallery">🖼️ Gallery</button>
     <button data-tab="videos">🎬 Videos</button>
     <button data-tab="press">📰 Press</button>
+    <button data-tab="content">🏠 Content</button>
     <button data-tab="messages">💬 Messages</button>
     <button data-tab="donations">💛 Donations</button>
     <button data-tab="settings">⚙️ Settings</button>
@@ -635,6 +636,158 @@
     </div>
 
     <div id="donList"><p style="color:var(--muted)">Loading…</p></div>
+  </div>
+
+  <!-- ══ CONTENT ══ -->
+  <div class="admin-section" id="s-content">
+    <div class="a-tab-header"><h2>🏠 Website Content</h2></div>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:18px">
+      Edit the text and images shown on the public site. Leave a field empty to keep the original built-in default.
+    </p>
+
+    <div class="settings-grid">
+
+      <!-- Hero slides -->
+      <div class="a-panel">
+        <h3>🖼️ Hero Slides (Homepage)</h3>
+        <div class="f-field"><label>Slide 1 — Image</label>
+          <input id="s_hero1_img" placeholder="https://…" />
+          <button class="btn-clear" data-action="uploadContent" data-target="s_hero1_img" data-preview="p_hero1_img" style="margin-top:6px">📤 Upload</button>
+          <img id="p_hero1_img" data-img-err="hide" style="display:none;max-width:180px;margin-top:8px;border-radius:6px" />
+        </div>
+        <div class="f-field"><label>Slide 1 — Title</label><input id="s_hero1_title" /></div>
+        <div class="f-field"><label>Slide 1 — Subtitle</label><input id="s_hero1_sub" /></div>
+        <div class="f-row">
+          <div class="f-field"><label>Slide 1 — Button Text</label><input id="s_hero1_btn" /></div>
+          <div class="f-field"><label>Slide 1 — Button Link</label><input id="s_hero1_link" placeholder="e.g. introduction.html" /></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0" />
+        <div class="f-field"><label>Slide 2 — Image</label>
+          <input id="s_hero2_img" placeholder="https://…" />
+          <button class="btn-clear" data-action="uploadContent" data-target="s_hero2_img" data-preview="p_hero2_img" style="margin-top:6px">📤 Upload</button>
+          <img id="p_hero2_img" data-img-err="hide" style="display:none;max-width:180px;margin-top:8px;border-radius:6px" />
+        </div>
+        <div class="f-field"><label>Slide 2 — Title</label><input id="s_hero2_title" /></div>
+        <div class="f-field"><label>Slide 2 — Subtitle</label><input id="s_hero2_sub" /></div>
+        <div class="f-row">
+          <div class="f-field"><label>Slide 2 — Button Text</label><input id="s_hero2_btn" /></div>
+          <div class="f-field"><label>Slide 2 — Button Link</label><input id="s_hero2_link" /></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0" />
+        <div class="f-field"><label>Slide 3 — Image</label>
+          <input id="s_hero3_img" placeholder="https://…" />
+          <button class="btn-clear" data-action="uploadContent" data-target="s_hero3_img" data-preview="p_hero3_img" style="margin-top:6px">📤 Upload</button>
+          <img id="p_hero3_img" data-img-err="hide" style="display:none;max-width:180px;margin-top:8px;border-radius:6px" />
+        </div>
+        <div class="f-field"><label>Slide 3 — Title</label><input id="s_hero3_title" /></div>
+        <div class="f-field"><label>Slide 3 — Subtitle</label><input id="s_hero3_sub" /></div>
+        <div class="f-row">
+          <div class="f-field"><label>Slide 3 — Button Text</label><input id="s_hero3_btn" /></div>
+          <div class="f-field"><label>Slide 3 — Button Link</label><input id="s_hero3_link" /></div>
+        </div>
+      </div>
+
+      <!-- Welcome / About block -->
+      <div class="a-panel">
+        <h3>👋 Welcome Block (Homepage)</h3>
+        <div class="f-field"><label>Section Title</label><input id="s_welcome_title" placeholder="Welcome" /></div>
+        <div class="f-field"><label>Section Tagline</label><input id="s_welcome_sub" /></div>
+        <div class="f-field"><label>About Heading</label><input id="s_home_about_title" /></div>
+        <div class="f-field"><label>About Text (HTML allowed)</label><textarea id="s_home_about_html" rows="6"></textarea></div>
+        <div class="f-field"><label>About Image</label>
+          <input id="s_home_about_img" placeholder="https://…" />
+          <button class="btn-clear" data-action="uploadContent" data-target="s_home_about_img" data-preview="p_home_about_img" style="margin-top:6px">📤 Upload</button>
+          <img id="p_home_about_img" data-img-err="hide" style="display:none;max-width:180px;margin-top:8px;border-radius:6px" />
+        </div>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="a-panel">
+        <h3>📊 Stats Bar (Homepage)</h3>
+        <div class="f-row">
+          <div class="f-field"><label>Stat 1 — Number</label><input id="s_stat1_num" /></div>
+          <div class="f-field"><label>Stat 1 — Label</label><input id="s_stat1_label" /></div>
+        </div>
+        <div class="f-row">
+          <div class="f-field"><label>Stat 2 — Number</label><input id="s_stat2_num" /></div>
+          <div class="f-field"><label>Stat 2 — Label</label><input id="s_stat2_label" /></div>
+        </div>
+        <div class="f-row">
+          <div class="f-field"><label>Stat 3 — Number</label><input id="s_stat3_num" /></div>
+          <div class="f-field"><label>Stat 3 — Label</label><input id="s_stat3_label" /></div>
+        </div>
+        <div class="f-row">
+          <div class="f-field"><label>Stat 4 — Number</label><input id="s_stat4_num" /></div>
+          <div class="f-field"><label>Stat 4 — Label</label><input id="s_stat4_label" /></div>
+        </div>
+      </div>
+
+      <!-- Our Works -->
+      <div class="a-panel">
+        <h3>🎯 Our Works (Homepage)</h3>
+        <div class="f-field"><label>Section Title</label><input id="s_works_title" /></div>
+        <div class="f-field"><label>Section Subtitle</label><input id="s_works_sub" /></div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:14px 0" />
+        <div class="f-row">
+          <div class="f-field"><label>Card 1 — Icon</label><input id="s_work1_icon" placeholder="🎥" /></div>
+          <div class="f-field"><label>Card 1 — Title</label><input id="s_work1_title" /></div>
+        </div>
+        <div class="f-field"><label>Card 1 — Text</label><textarea id="s_work1_text" rows="2"></textarea></div>
+        <div class="f-row">
+          <div class="f-field"><label>Card 2 — Icon</label><input id="s_work2_icon" /></div>
+          <div class="f-field"><label>Card 2 — Title</label><input id="s_work2_title" /></div>
+        </div>
+        <div class="f-field"><label>Card 2 — Text</label><textarea id="s_work2_text" rows="2"></textarea></div>
+        <div class="f-row">
+          <div class="f-field"><label>Card 3 — Icon</label><input id="s_work3_icon" /></div>
+          <div class="f-field"><label>Card 3 — Title</label><input id="s_work3_title" /></div>
+        </div>
+        <div class="f-field"><label>Card 3 — Text</label><textarea id="s_work3_text" rows="2"></textarea></div>
+        <div class="f-row">
+          <div class="f-field"><label>Card 4 — Icon</label><input id="s_work4_icon" /></div>
+          <div class="f-field"><label>Card 4 — Title</label><input id="s_work4_title" /></div>
+        </div>
+        <div class="f-field"><label>Card 4 — Text</label><textarea id="s_work4_text" rows="2"></textarea></div>
+      </div>
+
+      <!-- CTA -->
+      <div class="a-panel">
+        <h3>📣 Call To Action (Homepage)</h3>
+        <div class="f-field"><label>Title</label><input id="s_cta_title" /></div>
+        <div class="f-field"><label>Text</label><textarea id="s_cta_text" rows="2"></textarea></div>
+      </div>
+
+      <!-- Footer -->
+      <div class="a-panel">
+        <h3>📄 Footer (All Pages)</h3>
+        <div class="f-field"><label>Description</label><textarea id="s_footer_desc" rows="3"></textarea></div>
+        <div class="f-field"><label>Address</label><input id="s_footer_address" /></div>
+        <div class="f-field"><label>Phone</label><input id="s_footer_phone" /></div>
+        <div class="f-field"><label>Email</label><input id="s_footer_email" /></div>
+        <div class="f-field"><label>Copyright Line</label><input id="s_footer_copyright" /></div>
+      </div>
+
+      <!-- About page -->
+      <div class="a-panel">
+        <h3>📖 About Page</h3>
+        <div class="f-field"><label>Banner Title</label><input id="s_about_banner_title" /></div>
+        <div class="f-field"><label>Lead Paragraph</label><textarea id="s_about_lead" rows="3"></textarea></div>
+        <div class="f-field"><label>Main Image</label>
+          <input id="s_about_img" placeholder="https://…" />
+          <button class="btn-clear" data-action="uploadContent" data-target="s_about_img" data-preview="p_about_img" style="margin-top:6px">📤 Upload</button>
+          <img id="p_about_img" data-img-err="hide" style="display:none;max-width:180px;margin-top:8px;border-radius:6px" />
+        </div>
+        <div class="f-field"><label>Article Body (HTML)</label><textarea id="s_about_body_html" rows="12"></textarea></div>
+        <div class="f-field"><label>Sidebar — "At a Glance" (HTML list items)</label><textarea id="s_about_glance_html" rows="6"></textarea></div>
+        <div class="f-field"><label>Sidebar — "Katha Specializations" (HTML list items)</label><textarea id="s_about_specializations_html" rows="5"></textarea></div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:8px">
+      <div id="contentMsg" style="display:none;padding:12px 16px;border-radius:6px;margin-bottom:14px;font-size:14px;font-weight:600;color:#3a7a2a;background:#e3f3df"></div>
+      <button class="btn-save" style="padding:13px 36px;font-size:15px" data-action="saveSettings">💾 Save Content</button>
+    </div>
   </div>
 
   <!-- ══ SETTINGS ══ -->

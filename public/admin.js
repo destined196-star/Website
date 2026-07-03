@@ -111,7 +111,7 @@ if (_undoBtnEl) {
 }
 
 /* ── Tabs ────────────────────────────────────── */
-const TABS = ['events', 'posts', 'gallery', 'videos', 'press', 'messages', 'donations', 'settings'];
+const TABS = ['events', 'posts', 'gallery', 'videos', 'press', 'content', 'messages', 'donations', 'settings'];
 
 function switchTab(name) {
   document.querySelectorAll('.admin-nav button').forEach(b =>
@@ -1012,14 +1012,34 @@ const SETTINGS_KEYS = [
   'phone', 'location', 'bio',
   'upi_id', 'upi_name', 'donation_note',
   'bank_name', 'bank_account_name', 'bank_account_number', 'bank_ifsc', 'bank_branch',
-  'paypal_link', 'gpay_number', 'gpay_qr_url', 'phonepe_number', 'phonepe_qr_url', 'paytm_number', 'paytm_qr_url', 'other_payment'
+  'paypal_link', 'gpay_number', 'gpay_qr_url', 'phonepe_number', 'phonepe_qr_url', 'paytm_number', 'paytm_qr_url', 'other_payment',
+  // ── Website content (Content tab) ──
+  'hero1_img', 'hero1_title', 'hero1_sub', 'hero1_btn', 'hero1_link',
+  'hero2_img', 'hero2_title', 'hero2_sub', 'hero2_btn', 'hero2_link',
+  'hero3_img', 'hero3_title', 'hero3_sub', 'hero3_btn', 'hero3_link',
+  'welcome_title', 'welcome_sub', 'home_about_title', 'home_about_html', 'home_about_img',
+  'stat1_num', 'stat1_label', 'stat2_num', 'stat2_label', 'stat3_num', 'stat3_label', 'stat4_num', 'stat4_label',
+  'works_title', 'works_sub',
+  'work1_icon', 'work1_title', 'work1_text', 'work2_icon', 'work2_title', 'work2_text',
+  'work3_icon', 'work3_title', 'work3_text', 'work4_icon', 'work4_title', 'work4_text',
+  'cta_title', 'cta_text',
+  'footer_desc', 'footer_address', 'footer_phone', 'footer_email', 'footer_copyright',
+  'about_banner_title', 'about_lead', 'about_img', 'about_body_html', 'about_glance_html', 'about_specializations_html'
 ];
+
+// Content image keys → preview element id
+const CONTENT_IMG_KEYS = ['hero1_img', 'hero2_img', 'hero3_img', 'home_about_img', 'about_img'];
 
 async function loadSettings() {
   const s = await api('/api/admin/settings').catch(() => ({}));
   SETTINGS_KEYS.forEach(k => {
     const el = $('s_' + k);
     if (el) el.value = s[k] || '';
+  });
+  // Show image previews for content images
+  CONTENT_IMG_KEYS.forEach(k => {
+    const img = $('p_' + k);
+    if (img) { if (s[k]) { img.src = s[k]; img.style.display = ''; } else { img.style.display = 'none'; } }
   });
   // Load admin email into account panel
   const acc = await api('/api/admin/account').catch(() => ({}));
@@ -1040,6 +1060,38 @@ async function saveSettings() {
     }
     toast('Settings saved ✓');
   } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
+// Upload a content image → set target input value + show preview
+function uploadContent(btn) {
+  const targetId = btn.getAttribute('data-target');
+  const previewId = btn.getAttribute('data-preview');
+  const picker = document.createElement('input');
+  picker.type = 'file';
+  picker.accept = 'image/*';
+  picker.addEventListener('change', async function () {
+    const file = this.files[0];
+    if (!file) return;
+    const orig = btn.textContent;
+    btn.textContent = '⏳ Uploading…'; btn.disabled = true;
+    const fd = new FormData();
+    fd.append('image', file);
+    try {
+      const res = await fetch(API_BASE + '/api/admin/upload', {
+        method: 'POST', credentials: 'include',
+        headers: { 'X-Requested-With': 'fetch' }, body: fd
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      const inp = $(targetId); if (inp) inp.value = data.url;
+      const img = $(previewId); if (img) { img.src = data.url; img.style.display = ''; }
+      toast('Image uploaded — click Save Content to publish');
+    } catch (e) {
+      toast(e.message, 'err');
+    }
+    btn.textContent = orig; btn.disabled = false;
+  });
+  picker.click();
 }
 
 function downloadBackup() { window.location = API_BASE + '/api/admin/backup'; }
@@ -1180,6 +1232,7 @@ async function confirm2fa() {
       cancelPress:    function() { cancelForm('pressForm'); clearPress(); },
       downloadBackup:  function() { downloadBackup(); },
       saveSettings:    function() { saveSettings(); },
+      uploadContent:   function() { uploadContent(btn); },
       saveAdminEmail:  function() { saveAdminEmail(); },
       requestPwOtp:    function() { requestPwOtp(); },
       confirmPwChange: function() { confirmPwChange(); },

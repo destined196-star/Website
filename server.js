@@ -703,12 +703,34 @@ const ALLOWED_SETTINGS = new Set([
   'paypal_link',
   'gpay_number', 'phonepe_number', 'paytm_number',
   'other_payment',
-  'bank_name', 'bank_account_name', 'bank_account_number', 'bank_ifsc', 'bank_branch'
+  'bank_name', 'bank_account_name', 'bank_account_number', 'bank_ifsc', 'bank_branch',
+  // ── Homepage content — hero slides ──
+  'hero1_img', 'hero1_title', 'hero1_sub', 'hero1_btn', 'hero1_link',
+  'hero2_img', 'hero2_title', 'hero2_sub', 'hero2_btn', 'hero2_link',
+  'hero3_img', 'hero3_title', 'hero3_sub', 'hero3_btn', 'hero3_link',
+  // ── Homepage — welcome/about block ──
+  'welcome_title', 'welcome_sub', 'home_about_title', 'home_about_html', 'home_about_img',
+  // ── Homepage — stats bar ──
+  'stat1_num', 'stat1_label', 'stat2_num', 'stat2_label',
+  'stat3_num', 'stat3_label', 'stat4_num', 'stat4_label',
+  // ── Homepage — our works ──
+  'works_title', 'works_sub',
+  'work1_icon', 'work1_title', 'work1_text',
+  'work2_icon', 'work2_title', 'work2_text',
+  'work3_icon', 'work3_title', 'work3_text',
+  'work4_icon', 'work4_title', 'work4_text',
+  // ── Homepage — CTA ──
+  'cta_title', 'cta_text', 'cta_btn', 'cta_link',
+  // ── Footer (all pages) ──
+  'footer_desc', 'footer_address', 'footer_phone', 'footer_email', 'footer_copyright',
+  // ── About page (introduction.html) ──
+  'about_banner_title', 'about_lead', 'about_img',
+  'about_body_html', 'about_glance_html', 'about_specializations_html'
 ]);
 app.put('/api/admin/settings', requireAuth, (req, res) => {
   const up = db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value');
   for (const [k, v] of Object.entries(req.body || {})) {
-    if (ALLOWED_SETTINGS.has(k)) up.run(k, String(v).slice(0, 2000));
+    if (ALLOWED_SETTINGS.has(k)) up.run(k, String(v).slice(0, k.endsWith('_html') ? 30000 : 2000));
   }
   res.json({ ok: true });
 });

@@ -22,11 +22,13 @@
     document.querySelectorAll(`a[href*="${domain}"]`).forEach(a => { a.href = url; });
   }
 
-  // Elements with data-setting get text from settings
-  document.querySelectorAll('[data-setting]').forEach(el => {
-    const v = s[el.dataset.setting];
-    if (v) el.textContent = v;
-  });
+  // Generic settings→DOM binding. Static HTML stays as fallback when a key is empty.
+  const bind = (sel, fn) => document.querySelectorAll(sel).forEach(fn);
+  bind('[data-setting]',      el => { const v = s[el.dataset.setting];     if (v) el.textContent = v; });
+  bind('[data-setting-html]', el => { const v = s[el.dataset.settingHtml]; if (v) el.innerHTML = v; });          // admin-authored rich text
+  bind('[data-setting-src]',  el => { const v = s[el.dataset.settingSrc];  if (v) el.src = safeUrl(v); });
+  bind('[data-setting-bg]',   el => { const v = s[el.dataset.settingBg];   if (v) el.style.backgroundImage = "url('" + safeUrl(v) + "')"; });
+  bind('[data-setting-href]', el => { const v = s[el.dataset.settingHref]; if (v) el.setAttribute('href', safeUrl(v)); });
 
   // ---- Events container ----
   const evWrap = document.getElementById('events-dynamic');
