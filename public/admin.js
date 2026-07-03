@@ -1023,7 +1023,7 @@ const SETTINGS_KEYS = [
   'work1_icon', 'work1_title', 'work1_text', 'work2_icon', 'work2_title', 'work2_text',
   'work3_icon', 'work3_title', 'work3_text', 'work4_icon', 'work4_title', 'work4_text',
   'cta_title', 'cta_text',
-  'footer_desc', 'footer_address', 'footer_phone', 'footer_email', 'footer_copyright',
+  'footer_desc', 'footer_email', 'footer_copyright',
   'about_banner_title', 'about_lead', 'about_img', 'about_body_html', 'about_glance_html', 'about_specializations_html'
 ];
 
