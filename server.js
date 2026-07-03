@@ -259,6 +259,13 @@ function housekeeping() {
       }
       db.prepare("SELECT cover_image FROM playlists WHERE cover_image LIKE '/uploads/%'").all()
         .forEach(r => referenced.add(path.basename(r.cover_image)));
+      // Settings-stored images (hero/content banners, About image, donation QRs) live in the
+      // key/value settings table — include any value pointing at /uploads/ so they aren't purged.
+      db.prepare("SELECT value FROM settings WHERE value LIKE '%/uploads/%'").all()
+        .forEach(r => {
+          const m = String(r.value).match(/\/uploads\/[A-Za-z0-9._-]+/g);
+          if (m) m.forEach(u => referenced.add(path.basename(u)));
+        });
       const uploadDir = process.env.WEBSITE_INSTANCE_ID ? '/home/uploads' : path.join(__dirname, 'public', 'uploads');
       if (fs.existsSync(uploadDir)) {
         const files = fs.readdirSync(uploadDir);
